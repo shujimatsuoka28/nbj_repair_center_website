@@ -146,38 +146,44 @@ def add_repair():
 @app.route('/manage-accounts', methods=['GET', 'POST'])
 def manage_accounts():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
     if request.method == 'POST':
-        action = request.form.get('action')
-        
-        # Adding a new customer
-        if action == 'add':
-            username = request.form.get('username')
-            password = request.form.get('password')
-            # Note: We use 'full_name' from HTML and put it into 'fullname' in DB
-            full_name = request.form.get('full_name') 
+        try:
+            # We look for 'action' OR 'add' to decide what to do
+            action = request.form.get('action')
             
-            cursor.execute("""
-                INSERT INTO users (username, password, fullname, role) 
-                VALUES (%s, %s, %s, 'customer')""", 
-                (username, password, full_name))
-        
-        # Deleting a customer
-        elif action == 'delete':
-            user_id = request.form.get('user_id')
-            cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
-            
-        conn.commit()
+            if action == 'add' or 'username' in request.form:
+                # This handles both 'full_name' and 'fullname' from HTML
+                u_name = request.form.get('username')
+                p_word = request.form.get('password')
+                f_name = request.form.get('full_name') or request.form.get('fullname') or "New Customer"
+                
+                cursor.execute("""
+                    INSERT INTO users (username, password, fullname, role) 
+                    VALUES (%s, %s, %s, 'customer')""", 
+                    (u_name, p_word, f_name))
+                conn.commit()
+                flash("Account added successfully!")
+                
+            elif action == 'delete':
+                user_id = request.form.get('user_id')
+                cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
+                conn.commit()
+                flash("Account deleted.")
+                
+        except Exception as e:
+            # This will show you exactly WHAT is wrong on the screen
+            return f"Account Error: {e}"
     
-    # This fetches the list to show on the page
+    # Fetch the list
     cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
     customers = cursor.fetchall() or []
     cursor.close()
     conn.close()
     return render_template('manage_accounts.html', customers=customers)
-
 @app.route('/repair-history')
 def repair_history():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
