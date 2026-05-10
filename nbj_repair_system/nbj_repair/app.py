@@ -79,22 +79,7 @@ def logout():
     session.clear()
     return redirect(url_for('login_page'))
 
-# --- CUSTOMER DASHBOARD ---
-@app.route('/customer-dashboard')
-def customer_dashboard():
-    if 'user_id' not in session: return redirect(url_for('login_page'))
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM repairs WHERE user_id = %s ORDER BY id DESC", (session['user_id'],))
-        my_repairs = cursor.fetchall() or []
-        cursor.close()
-        conn.close()
-        return render_template('customer_dashboard.html', repairs=my_repairs)
-    except Exception as e:
-        return f"Customer Dashboard Error: {str(e)}"
-
-# --- ADMIN DASHBOARD ---
+# --- DASHBOARDS ---
 @app.route('/admin-dashboard')
 def admin_dashboard():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -114,10 +99,22 @@ def admin_dashboard():
             'admin_name': session.get('fullname', 'Administrator')
         }
         return render_template('dashboard.html', **stats)
-    except Exception as e:
-        return f"Dashboard Error: {str(e)}"
+    except Exception as e: return f"Error: {e}"
 
-# --- MANAGE ACCOUNTS (AUTO-LINK VERSION) ---
+@app.route('/customer-dashboard')
+def customer_dashboard():
+    if 'user_id' not in session: return redirect(url_for('login_page'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM repairs WHERE user_id = %s ORDER BY id DESC", (session['user_id'],))
+        my_repairs = cursor.fetchall() or []
+        cursor.close()
+        conn.close()
+        return render_template('customer_dashboard.html', repairs=my_repairs)
+    except Exception as e: return f"Error: {e}"
+
+# --- CORE FEATURES ---
 @app.route('/manage-accounts', methods=['GET', 'POST'])
 def manage_accounts():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -136,16 +133,13 @@ def manage_accounts():
             elif action == 'delete':
                 cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
                 conn.commit()
-
         cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
         customers = cursor.fetchall() or []
         cursor.close()
         conn.close()
         return render_template('manage_accounts.html', customers=customers)
-    except Exception as e:
-        return f"Account Page Error: {str(e)}"
+    except Exception as e: return f"Error: {e}"
 
-# --- ADD REPAIR (AUTO-LINK VERSION) ---
 @app.route('/add-repair', methods=['GET', 'POST'])
 def add_repair():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -173,7 +167,7 @@ def add_repair():
             cursor.close()
             conn.close()
             return redirect(url_for('admin_dashboard'))
-        except Exception as e: return f"Job Error: {str(e)}"
+        except Exception as e: return f"Error: {e}"
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -183,17 +177,18 @@ def add_repair():
     conn.close()
     return render_template('add_repair.html', customers=customers, today=date.today())
 
-# --- NAVIGATION ---
 @app.route('/repair-history')
 def repair_history():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
-    repairs = cursor.fetchall() or []
-    cursor.close()
-    conn.close()
-    return render_template('repair_history.html', repairs=repairs)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
+        repairs = cursor.fetchall() or []
+        cursor.close()
+        conn.close()
+        return render_template('repair_history.html', repairs=repairs)
+    except Exception as e: return f"Error: {e}"
 
 @app.route('/repair-detail/<int:repair_id>')
 def repair_detail(repair_id):
@@ -205,9 +200,6 @@ def repair_detail(repair_id):
     cursor.close()
     conn.close()
     return render_template('repair_detail.html', repair=repair)
-
-@app.route('/track')
-def track(): return render_template('track.html')
 
 # --- RECOVERY ---
 @app.route('/reset-database')
@@ -222,7 +214,7 @@ def reset_db():
     cursor.close()
     conn.close()
     setup_database()
-    return "Database Rebuilt! Visit <a href='/force-admin'>/force-admin</a>"
+    return "Database Rebuilt! <a href='/force-admin'>Force Admin</a>"
 
 @app.route('/force-admin')
 def force_admin():
