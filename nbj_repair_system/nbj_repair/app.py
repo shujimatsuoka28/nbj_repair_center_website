@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "nbjsecret"
 
-# 1. Database Connection Configuration
+# 1. Database Connection Configuration using your Aiven details
 def get_db_connection():
     return mysql.connector.connect(
         host="nbj-db-eac-90f2.k.aivencloud.com",
@@ -15,11 +15,12 @@ def get_db_connection():
         database="defaultdb"
     )
 
-# 2. SELF-REPAIR: Runs once to ensure the table exists
+# 2. SELF-REPAIR: This creates your table automatically so you don't have to find Aiven settings
 def setup_database():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        # Create table if it doesn't exist
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -29,6 +30,7 @@ def setup_database():
                 role VARCHAR(20)
             )
         """)
+        # Add the default admin user if the table is empty
         cursor.execute("SELECT COUNT(*) FROM users")
         if cursor.fetchone()[0] == 0:
             cursor.execute("""
@@ -38,12 +40,13 @@ def setup_database():
         conn.commit()
         cursor.close()
         conn.close()
+        print("✅ Database is ready and table is created!")
     except Exception as e:
-        print(f"Database setup error: {e}")
+        print(f"❌ Database setup failed: {e}")
 
+# Run the setup before the app starts
 setup_database()
 
-# 3. ROUTES
 @app.route('/')
 def login_page():
     return render_template('login.html')
@@ -56,6 +59,7 @@ def login():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        # Check credentials
         cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
         user = cursor.fetchone()
         cursor.close()
@@ -74,25 +78,19 @@ def login():
         flash('Invalid username or password', 'danger')
         return redirect('/')
     except Exception as e:
-        return f"Database error: {e}"
+        return f"Database Error: {e}"
 
+# Placeholder routes for dashboards so you don't get a 404
 @app.route('/admin-dashboard')
 def admin_dashboard():
-    if 'role' in session and session['role'] == 'admin':
-        return f"<h1>Admin Dashboard</h1><p>Welcome, {session.get('fullname')}!</p><a href='/logout'>Logout</a>"
-    return redirect('/')
+    if 'user_id' not in session: return redirect('/')
+    return f"Welcome {session['fullname']}! This is the Admin Dashboard."
 
 @app.route('/customer-dashboard')
 def customer_dashboard():
-    if 'user_id' in session:
-        return f"<h1>Customer Dashboard</h1><p>Welcome, {session.get('fullname')}!</p><a href='/logout'>Logout</a>"
-    return redirect('/')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/')
+    if 'user_id' not in session: return redirect('/')
+    return f"Welcome {session['fullname']}! This is the Customer Dashboard."
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
