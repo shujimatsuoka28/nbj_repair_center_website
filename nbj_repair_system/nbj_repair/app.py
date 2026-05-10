@@ -18,13 +18,13 @@ def get_db_connection():
         database="defaultdb"
     )
 
-# --- DATABASE SETUP (Table Creation & Default Admin) ---
+# --- DATABASE SETUP ---
 def setup_database():
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         
-        # Create Users Table
+        # Users Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY, 
@@ -34,7 +34,7 @@ def setup_database():
                 role VARCHAR(20)
             )""")
             
-        # Create Repairs Table (Matches all HTML fields)
+        # Repairs Table - Updated to include all necessary columns
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS repairs (
                 id INT AUTO_INCREMENT PRIMARY KEY, 
@@ -53,14 +53,6 @@ def setup_database():
                 user_id INT
             )""")
 
-        # Auto-create Admin (User: admin | Pass: 1234)
-        cursor.execute("SELECT * FROM users WHERE username = 'admin'")
-        if not cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO users (username, password, fullname, role) 
-                VALUES (%s, %s, %s, %s)""", 
-                ('admin', '1234', 'System Administrator', 'admin'))
-        
         conn.commit()
         cursor.close()
         conn.close()
@@ -69,7 +61,43 @@ def setup_database():
 
 setup_database()
 
-# --- AUTHENTICATION ROUTES ---
+# --- MAINTENANCE ROUTES (Run these in browser if error occurs) ---
+
+@app.route('/fix-db')
+def fix_db():
+    """Wipes and recreates tables to fix Internal Server Errors caused by column mismatches."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS repairs")
+        cursor.execute("DROP TABLE IF EXISTS users")
+        conn.commit()
+        cursor.close()
+        conn.close()
+        setup_database()
+        return "Database tables have been reset! Now go to <a href='/force-admin'>/force-admin</a> to recreate your account."
+    except Exception as e:
+        return f"Error resetting database: {e}"
+
+@app.route('/force-admin')
+def force_admin():
+    """Resets the admin account."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM users WHERE username = 'admin'")
+        cursor.execute("""
+            INSERT INTO users (username, password, fullname, role) 
+            VALUES (%s, %s, %s, %s)""", 
+            ('admin', '1234', 'System Administrator', 'admin'))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return "Admin reset to: <b>admin / 1234</b>. <a href='/'>Go to Login</a>"
+    except Exception as e:
+        return f"Error: {e}"
+
+# --- AUTHENTICATION ---
 
 @app.route('/')
 def login_page():
@@ -77,8 +105,9 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
+    username = request.form.get('username').strip()
+    password = request.form.get('password').strip()
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
@@ -126,28 +155,41 @@ def add_repair():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
     
     if request.method == 'POST':
-        # Generate ID (NBJ-XXXXXX)
         track_id = "NBJ-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        
+        received_date = request.form.get('date_received') or date.today()
+
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Exactly matching the 12 columns required by the INSERT
         data = (
-            track_id, request.form.get('customer_name'), request.form.get('contact_number'),
-            request.form.get('item_name'), request.form.get('item_brand'),
-            request.form.get('issue_description'), request.form.get('date_received'),
+            track_id, 
+            request.form.get('customer_name'), 
+            request.form.get('contact_number'),
+            request.form.get('item_name'), 
+            request.form.get('item_brand'),
+            request.form.get('item_model'), # Added
+            request.form.get('issue_description'),
+            "", # technician_notes starts empty
+            'Received', 
+            received_date,
             request.form.get('estimated_completion') or None,
-            request.form.get('repair_cost') or 0, request.form.get('customer_id') or None
+            request.form.get('repair_cost') or 0, 
+            request.form.get('customer_id') or None
         )
+        
         cursor.execute("""
-            INSERT INTO repairs (tracking_number, customer_name, contact_number, item_name, 
-            item_brand, issue_description, date_received, estimated_completion, repair_cost, user_id) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
+            INSERT INTO repairs (
+                tracking_number, customer_name, contact_number, item_name, 
+                item_brand, item_model, issue_description, technician_notes, 
+                status, date_received, estimated_completion, repair_cost, user_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
+            
         conn.commit()
         cursor.close()
         conn.close()
         return redirect(url_for('admin_dashboard'))
 
-    # Fetch customers to populate the dropdown
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id, fullname FROM users WHERE role='customer'")
@@ -181,8 +223,11 @@ def update_status(repair_id):
     cursor.execute("""
         UPDATE repairs SET status=%s, estimated_completion=%s, technician_notes=%s, repair_cost=%s 
         WHERE id=%s""", (
-            request.form.get('status'), request.form.get('estimated_completion') or None,
-            request.form.get('technician_notes'), request.form.get('repair_cost'), repair_id
+            request.form.get('status'), 
+            request.form.get('estimated_completion') or None,
+            request.form.get('technician_notes'), 
+            request.form.get('repair_cost'), 
+            repair_id
         ))
     conn.commit()
     cursor.close()
@@ -210,14 +255,14 @@ def manage_accounts():
     conn.close()
     return render_template('manage_accounts.html', customers=customers)
 
-# --- CUSTOMER & SHARED ROUTES ---
+# --- CUSTOMER & PUBLIC ---
 
 @app.route('/track', methods=['GET', 'POST'])
 def track():
     repair = None
     error = None
     if request.method == 'POST':
-        tn = request.form.get('tracking_number')
+        tn = request.form.get('tracking_number').strip()
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM repairs WHERE tracking_number=%s", (tn,))
