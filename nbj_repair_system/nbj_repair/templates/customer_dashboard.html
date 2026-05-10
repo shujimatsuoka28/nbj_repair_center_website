@@ -1,4 +1,8 @@
+{% extends "base.html" %}
 
+{% block title %}My Repairs — NBJ{% endblock %}
+
+{% block content %}
 <style>
     /* Super Dark Grey / OLED Theme Foundations */
     :root {
@@ -187,36 +191,37 @@
 <div class="card">
     <div class="card-title"><i class="fas fa-clipboard-list"></i> Personal Repair History</div>
 
-   
+    {% if repairs %}
+        {% for r in repairs %}
         <div class="repair-item">
             <div class="repair-header">
                 <div>
                     <div class="tracking-num">{{ r['tracking_number'] }}</div>
                     <div class="item-name">{{ r['item_name'] }}</div>
-                    
+                    {% if r['item_brand'] %}
                     <div class="item-sub">{{ r['item_brand'] }} {{ r['item_model'] or '' }}</div>
-                    
+                    {% endif %}
                 </div>
                 <div style="text-align: right;">
-                    
+                    {% set s = r['status'] %}
                     <span class="badge badge-{{ s.lower().replace(' ','') }}" style="margin-bottom: 8px;">{{ s }}</span>
                     <div><a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-view">Details</a></div>
                 </div>
             </div>
 
-            
+            {% if r['issue_description'] %}
             <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 5px;">
                 <span style="color: var(--accent-red); font-weight: 700;">Issue:</span> 
-               
+                {{ r['issue_description'][:100] }}{% if r['issue_description']|length > 100 %}...{% endif %}
             </div>
-          
+            {% endif %}
 
-           
+            {% if r['technician_notes'] %}
             <div class="tech-update">
                 <div style="font-size: 0.6rem; text-transform: uppercase; font-weight: 800; color: var(--accent-red); margin-bottom: 4px;">Latest Update</div>
-                
+                {{ r['technician_notes'] }}
             </div>
-            
+            {% endif %}
 
             <div class="item-meta-grid">
                 <div class="meta-point">
@@ -226,12 +231,13 @@
                 <div class="meta-point">
                     <div class="label">Est. Completion</div>
                     <div class="value" style="color: {% if r['estimated_completion'] %}#ffae00{% else %}var(--text-dim){% endif %}">
-                      
+                        {{ r['estimated_completion'] or 'Pending Assessment' }}
                     </div>
                 </div>
             </div>
         </div>
-      
+        {% endfor %}
+    {% else %}
         <div style="text-align: center; padding: 60px 20px; color: var(--text-dim);">
             <i class="fas fa-tools" style="font-size: 2.5rem; margin-bottom: 20px; opacity: 0.1;"></i>
             <p style="margin-bottom: 10px; color: var(--text-bright);">No repairs found for this account.</p>
@@ -239,9 +245,10 @@
                 Please contact the shop with your username to link your active repair jobs to this dashboard.
             </p>
         </div>
-  
+    {% endif %}
 </div>
 
 <div style="text-align: center; color: #333; font-size: 0.7rem; margin-top: 40px; text-transform: uppercase; letter-spacing: 1px;">
     NBJ Monitoring System • Verified Customer Portal
 </div>
+{% endblock %}
