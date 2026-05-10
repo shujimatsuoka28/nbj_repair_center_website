@@ -1,4 +1,8 @@
+{% extends "base.html" %}
 
+{% block title %}Repair #{{ repair['tracking_number'] }} — NBJ{% endblock %}
+
+{% block content %}
 <style>
     /* Super Dark Grey / OLED Theme Foundations */
     :root {
@@ -154,11 +158,11 @@
         <div>
             <div class="tracking-badge-large">#{{ repair['tracking_number'] }}</div>
         </div>
-        
+        {% if session.get('role') == 'admin' %}
         <a href="{{ url_for('repair_history') }}" class="btn-back"><i class="fas fa-arrow-left"></i> History</a>
-        
+        {% else %}
         <a href="{{ url_for('customer_dashboard') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
-       
+        {% endif %}
     </div>
 
     <div class="card">
@@ -191,12 +195,12 @@
                 <div class="value">{{ repair['item_model'] or '—' }}</div>
             </div>
         </div>
-        
+        {% if repair['issue_description'] %}
         <div class="notes-box" style="margin-top: 30px;">
             <div class="label" style="font-size: 0.6rem; color: var(--accent-red); margin-bottom: 8px;">Diagnosed Problem</div>
-          
+            {{ repair['issue_description'] }}
         </div>
-     
+        {% endif %}
     </div>
 
     <div class="card">
@@ -209,7 +213,7 @@
             <div class="data-item">
                 <div class="label">Est. Completion</div>
                 <div class="value" style="color: {% if repair['estimated_completion'] %}#ffae00{% else %}var(--text-dim){% endif %}">
-                  
+                    {{ repair['estimated_completion'] or 'Unscheduled' }}
                 </div>
             </div>
             <div class="data-item">
@@ -217,12 +221,12 @@
                 <div class="value">{{ repair['date_completed'] or '—' }}</div>
             </div>
         </div>
-      
+        {% if repair['technician_notes'] %}
         <div class="notes-box">
             <div class="label" style="font-size: 0.6rem; color: var(--accent-red); margin-bottom: 8px;">Technician Updates</div>
-
+            {{ repair['technician_notes'] }}
         </div>
-    
+        {% endif %}
     </div>
 
     <div class="card summary-card">
@@ -241,3 +245,4 @@
         NBJ Electronics Repair Center • Dasmariñas, Cavite • 0916-553-9782
     </div>
 </div>
+{% endblock %}
