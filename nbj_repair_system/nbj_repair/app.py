@@ -29,7 +29,6 @@ def setup_database():
     if conn:
         try:
             cursor = conn.cursor()
-            # Users Table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INT AUTO_INCREMENT PRIMARY KEY, 
@@ -38,7 +37,6 @@ def setup_database():
                     fullname VARCHAR(100), 
                     role VARCHAR(20)
                 )""")
-            # Repairs Table - Ensure ALL columns are present
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS repairs (
                     id INT AUTO_INCREMENT PRIMARY KEY, 
@@ -64,11 +62,10 @@ def setup_database():
 
 setup_database()
 
-# --- RECOVERY ROUTES ---
+# --- RECOVERY ---
 
 @app.route('/reset-database')
 def reset_db():
-    """CRITICAL: Run this to fix 'Unknown Column' errors."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -80,7 +77,7 @@ def reset_db():
         cursor.close()
         conn.close()
         setup_database()
-        return "Database Wiped and Recreated with all columns! Now go to <a href='/force-admin'>/force-admin</a>"
+        return "Database Wiped! Visit <a href='/force-admin'>/force-admin</a>"
     except Exception as e:
         return f"Reset Error: {e}"
 
@@ -95,7 +92,7 @@ def force_admin():
         conn.commit()
         cursor.close()
         conn.close()
-        return "Admin reset to: admin / 1234. <a href='/'>Login</a>"
+        return "Admin reset! <a href='/'>Login</a>"
     except Exception as e:
         return f"Error: {e}"
 
@@ -110,6 +107,7 @@ def login():
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
     conn = get_db_connection()
+    if not conn: return "DB Connection Error", 500
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
     user = cursor.fetchone()
@@ -119,29 +117,68 @@ def login():
         session['user_id'] = user['id']
         session['role'] = user['role']
         session['fullname'] = user['fullname']
-        return redirect(url_for('admin_dashboard'))
-    flash('Invalid credentials', 'danger')
+        if user['role'] == 'admin':
+            return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('customer_dashboard'))
+    flash('Invalid login', 'danger')
     return redirect(url_for('login_page'))
 
-# --- ADMIN ROUTES ---
+# --- ADMIN DASHBOARD (STRENGTHENED) ---
 
 @app.route('/admin-dashboard')
 def admin_dashboard():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
+        rows = cursor.fetchall() or []
+        cursor.close()
+        conn.close()
+        
+        # Stats logic with safety defaults
+        stats = {
+            'total': len(rows),
+            'ongoing': sum(1 for r in rows if r.get('status') not in ['Released', 'Completed']),
+            'completed': sum(1 for r in rows if r.get('status') == 'Completed'),
+            'released': sum(1 for r in rows if r.get('status') == 'Released'),
+            'recent': rows[:5] 
+        }
+        return render_template('dashboard.html', **stats)
+    except Exception as e:
+        return f"Dashboard Crash: {e}. Did you run /reset-database?"
+
+# --- ALL OTHER ROUTES ADDED BACK ---
+
+@app.route('/repair-history')
+def repair_history():
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
-    rows = cursor.fetchall() or []
+    repairs = cursor.fetchall() or []
     cursor.close()
     conn.close()
-    stats = {
-        'total': len(rows),
-        'ongoing': sum(1 for r in rows if r.get('status') not in ['Released', 'Completed']),
-        'completed': sum(1 for r in rows if r.get('status') == 'Completed'),
-        'released': sum(1 for r in rows if r.get('status') == 'Released'),
-        'recent': rows[:5] 
-    }
-    return render_template('dashboard.html', **stats)
+    return render_template('repair_history.html', repairs=repairs)
+
+@app.route('/manage-accounts', methods=['GET', 'POST'])
+def manage_accounts():
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'add':
+            cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", 
+                           (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
+        elif action == 'delete':
+            cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
+        conn.commit()
+    cursor.execute("SELECT * FROM users WHERE role='customer'")
+    customers = cursor.fetchall() or []
+    cursor.close()
+    conn.close()
+    return render_template('manage_accounts.html', customers=customers)
 
 @app.route('/add-repair', methods=['GET', 'POST'])
 def add_repair():
@@ -151,13 +188,11 @@ def add_repair():
             track_id = "NBJ-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             conn = get_db_connection()
             cursor = conn.cursor()
-            # 13 values matching the table structure
             data = (
                 track_id, request.form.get('customer_name'), request.form.get('contact_number'),
                 request.form.get('item_name'), request.form.get('item_brand'),
                 request.form.get('item_model', ''), request.form.get('issue_description'),
-                "", 'Received', date.today(), request.form.get('estimated_completion') or None,
-                request.form.get('repair_cost') or 0.0, request.form.get('customer_id') or None
+                "", 'Received', date.today(), None, request.form.get('repair_cost') or 0.0, None
             )
             cursor.execute("""
                 INSERT INTO repairs (tracking_number, customer_name, contact_number, item_name, 
@@ -170,37 +205,18 @@ def add_repair():
             return redirect(url_for('admin_dashboard'))
         except Exception as e:
             return f"Error: {e}"
+    return render_template('add_repair.html', today=date.today())
 
+@app.route('/customer-dashboard')
+def customer_dashboard():
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, fullname FROM users WHERE role='customer'")
-    customers = cursor.fetchall() or []
+    cursor.execute("SELECT * FROM repairs WHERE user_id=%s", (session['user_id'],))
+    repairs = cursor.fetchall() or []
     cursor.close()
     conn.close()
-    return render_template('add_repair.html', customers=customers, today=date.today())
-
-@app.route('/manage-accounts', methods=['GET', 'POST'])
-def manage_accounts():
-    if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    if request.method == 'POST':
-        try:
-            action = request.form.get('action')
-            if action == 'add':
-                cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", 
-                               (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
-            elif action == 'delete':
-                cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
-            conn.commit()
-        except Exception as e:
-            return f"Account Error: {e}"
-    
-    cursor.execute("SELECT * FROM users WHERE role='customer'")
-    customers = cursor.fetchall() or []
-    cursor.close()
-    conn.close()
-    return render_template('manage_accounts.html', customers=customers)
+    return render_template('customer_dashboard.html', repairs=repairs)
 
 @app.route('/logout')
 def logout():
