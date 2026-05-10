@@ -134,17 +134,31 @@ def manage_accounts():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        
         if request.method == 'POST':
             action = request.form.get('action')
+            
             if action == 'add':
-                u, p = request.form.get('username'), request.form.get('password')
+                u = request.form.get('username')
+                p = request.form.get('password')
                 f = request.form.get('full_name') or request.form.get('fullname')
+                
+                # 1. Create the new customer account
                 cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", (u, p, f))
+                new_user_id = cursor.lastrowid # Get the ID of the user we just created
+                
+                # 2. AUTO-LINK FEATURE: 
+                # Find any repairs that match this name exactly and update them with the new user_id
+                cursor.execute("UPDATE repairs SET user_id = %s WHERE customer_name = %s", (new_user_id, f))
+                
                 conn.commit()
+                flash(f"Account created for {f} and existing jobs linked!")
+
             elif action == 'delete':
                 cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
                 conn.commit()
 
+        # Fetch list of customers for the table
         cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
         customers = cursor.fetchall() or []
         cursor.close()
