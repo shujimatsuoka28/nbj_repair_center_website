@@ -1,4 +1,8 @@
+{% extends "base.html" %}
 
+{% block title %}Dashboard — NBJ Repair Center{% endblock %}
+
+{% block content %}
 <style>
     /* Super Dark Grey / OLED Theme Foundations */
     :root {
@@ -195,7 +199,7 @@
 <div class="card">
     <div class="card-title"><i class="fas fa-clock"></i> Recent Activity</div>
     
-  
+    {% if recent %}
     <div class="table-wrap">
         <table>
             <thead>
@@ -210,7 +214,7 @@
                 </tr>
             </thead>
             <tbody>
-          
+            {% for r in recent %}
             <tr>
                 <td><span class="tracking-num">{{ r['tracking_number'] }}</span></td>
                 <td><div style="font-weight: 600;">{{ r['customer_name'] }}</div></td>
@@ -221,28 +225,28 @@
                 <td style="color: var(--text-dim);">{{ r['date_received'] }}</td>
                 <td>
                     <span style="color: {% if r['estimated_completion'] %}#ffae00{% else %}var(--text-dim){% endif %};">
-                        
+                        {{ r['estimated_completion'] or '—' }}
                     </span>
                 </td>
                 <td>
                     <span class="badge badge-{{ r['status'].lower().replace(' ','') }}">
-                       
+                        {{ r['status'] }}
                     </span>
                 </td>
                 <td style="text-align: right;">
                     <a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.65rem;">View Details</a>
                 </td>
             </tr>
-          
+            {% endfor %}
             </tbody>
         </table>
     </div>
-  
+    {% else %}
     <div style="text-align: center; padding: 50px; color: var(--text-dim);">
         <i class="fas fa-clipboard" style="font-size: 2rem; opacity: 0.1; margin-bottom: 15px;"></i>
         <p>No repair jobs recorded yet.</p>
     </div>
-
+    {% endif %}
 </div>
 
 <div class="action-banner">
@@ -257,3 +261,4 @@
         <a href="{{ url_for('add_repair') }}" class="btn-primary"><i class="fas fa-plus"></i> New Repair Job</a>
     </div>
 </div>
+{% endblock %}
