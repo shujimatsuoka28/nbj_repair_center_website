@@ -6,8 +6,8 @@
 <style>
     /* Super Dark Grey / OLED Theme Foundations */
     :root {
-        --bg-super-dark: #050505; /* Super Dark Grey */
-        --card-bg: #0a0a0a;       /* Slightly lighter for definition */
+        --bg-super-dark: #050505; 
+        --card-bg: #0a0a0a;       
         --accent-red: #ff3131;
         --accent-gradient: linear-gradient(145deg, #ff3131, #8b0000);
         --text-bright: #ffffff;
@@ -16,133 +16,25 @@
         --input-bg: #0d0d0d;
     }
 
-    /* Force the background for the entire content area */
-    body {
-        background-color: var(--bg-super-dark) !important;
-    }
+    body, .main { background-color: var(--bg-super-dark) !important; }
 
-    .form-container {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 20px 0;
-    }
+    .form-container { max-width: 900px; margin: 0 auto; padding: 20px 0; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 16px; padding: 40px; box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8); }
+    .form-section-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-red); font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    hr { border: 0; border-top: 1px solid var(--border-thin); margin: 35px 0; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group.full { grid-column: span 2; }
+    label { font-size: 0.75rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 16px;
-        padding: 40px;
-        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
-    }
+    input, select, textarea { background: var(--input-bg); border: 1px solid var(--border-thin); border-radius: 8px; padding: 14px 16px; color: var(--text-bright); font-size: 0.95rem; transition: all 0.3s ease; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-red); background: #121212; box-shadow: 0 0 15px rgba(255, 49, 49, 0.1); }
+    textarea { min-height: 120px; resize: none; }
 
-    .form-section-header {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: var(--accent-red);
-        font-weight: 800;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    hr {
-        border: 0;
-        border-top: 1px solid var(--border-thin);
-        margin: 35px 0;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .form-group.full {
-        grid-column: span 2;
-    }
-
-    label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--text-dim);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    input, select, textarea {
-        background: var(--input-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 8px;
-        padding: 14px 16px;
-        color: var(--text-bright);
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-    }
-
-    input:focus, select:focus, textarea:focus {
-        outline: none;
-        border-color: var(--accent-red);
-        background: #121212;
-        box-shadow: 0 0 15px rgba(255, 49, 49, 0.1);
-    }
-
-    /* Modern scrollbar for textareas */
-    textarea {
-        min-height: 120px;
-        resize: none;
-    }
-
-    .btn-group {
-        display: flex;
-        gap: 15px;
-        margin-top: 40px;
-    }
-
-    .btn-save {
-        background: var(--accent-gradient);
-        color: #fff;
-        padding: 14px 28px;
-        border-radius: 10px;
-        border: none;
-        font-weight: 800;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .btn-save:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(255, 49, 49, 0.4);
-    }
-
-    .btn-cancel {
-        background: transparent;
-        border: 1px solid var(--border-thin);
-        color: var(--text-dim);
-        padding: 14px 28px;
-        border-radius: 10px;
-        text-decoration: none;
-        font-weight: 700;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        transition: 0.3s;
-        text-align: center;
-    }
-
-    .btn-cancel:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: #fff;
-        border-color: #444;
-    }
+    .btn-group { display: flex; gap: 15px; margin-top: 40px; }
+    .btn-save { background: var(--accent-gradient); color: #fff; padding: 14px 28px; border-radius: 10px; border: none; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255, 49, 49, 0.4); }
+    .btn-cancel { background: transparent; border: 1px solid var(--border-thin); color: var(--text-dim); padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; text-align: center; }
 </style>
 
 <div class="form-container">
@@ -155,20 +47,22 @@
             <div class="form-grid">
                 <div class="form-group full">
                     <label>Associate with Account</label>
-                    <select name="customer_id">
-                        <option value="">— Walk-in / Unregistered —</option>
+                    <select name="customer_id" id="customer_select">
+                        <option value="" data-name="" data-phone="">— Walk-in / Unregistered —</option>
                         {% for c in customers %}
-                        <option value="{{ c['id'] }}">{{ c['full_name'] }} ({{ c['username'] }})</option>
+                        <option value="{{ c['id'] }}" data-name="{{ c['full_name'] }}" data-phone="{{ c['phone'] or '' }}">
+                            {{ c['full_name'] }} (@{{ c['username'] }})
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Customer Name *</label>
-                    <input type="text" name="customer_name" placeholder="Full legal name" required>
+                    <input type="text" name="customer_name" id="customer_name" placeholder="Full legal name" required>
                 </div>
                 <div class="form-group">
                     <label>Contact Number</label>
-                    <input type="text" name="contact_number" placeholder="09XX-XXX-XXXX">
+                    <input type="text" name="contact_number" id="contact_number" placeholder="09XX-XXX-XXXX">
                 </div>
             </div>
 
@@ -216,9 +110,19 @@
 
             <div class="btn-group">
                 <button type="submit" class="btn-save">Finalize Entry</button>
-                <a href="{{ url_for('dashboard') }}" class="btn-cancel">Discard Changes</a>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn-cancel">Discard Changes</a>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    // Automatically fill Name and Phone when an account is selected
+    document.getElementById('customer_select').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        document.getElementById('customer_name').value = selectedOption.getAttribute('data-name');
+        document.getElementById('contact_number').value = selectedOption.getAttribute('data-phone');
+    });
+</script>
+
 {% endblock %}
