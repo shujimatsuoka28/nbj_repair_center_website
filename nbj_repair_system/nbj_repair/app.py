@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, flash, url_for
 import mysql.connector
 import os
+from datetime import date
 
 app = Flask(__name__)
 app.secret_key = "nbjsecret"
@@ -15,12 +16,11 @@ def get_db_connection():
         database="defaultdb"
     )
 
-# 2. Database Initialization
+# 2. Database Initialization (Creates tables if they don't exist)
 def setup_database():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Create users table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -30,34 +30,28 @@ def setup_database():
                 role VARCHAR(20)
             )
         """)
-        # Create repairs table to hold the dashboard data
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS repairs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                tracking_number VARCHAR(20),
+                tracking_number VARCHAR(50),
                 customer_name VARCHAR(100),
                 item_name VARCHAR(100),
-                item_brand VARCHAR(50),
+                item_brand VARCHAR(100),
                 status VARCHAR(50) DEFAULT 'Repairing',
                 date_received DATE,
                 estimated_completion DATE,
-                repair_cost DECIMAL(10,2) DEFAULT 0.00,
-                technician_notes TEXT,
+                repair_cost DECIMAL(10,2) DEFAULT 0.0,
                 user_id INT
             )
         """)
-        # Add default admin if empty
         cursor.execute("SELECT COUNT(*) FROM users")
         if cursor.fetchone()[0] == 0:
-            cursor.execute("""
-                INSERT INTO users (username, password, fullname, role) 
-                VALUES ('admin', 'admin123', 'NBJ Admin', 'admin')
-            """)
+            cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES ('admin', 'admin123', 'NBJ Admin', 'admin')")
         conn.commit()
         cursor.close()
         conn.close()
     except Exception as e:
-        print(f"Database setup error: {e}")
+        print(f"DB Setup Error: {e}")
 
 setup_database()
 
@@ -65,8 +59,6 @@ setup_database()
 
 @app.route('/')
 def login_page():
-    if 'user_id' in session:
-        return redirect(url_for('admin_dashboard') if session['role'] == 'admin' else url_for('customer_dashboard'))
     return render_template('login.html')
 
 @app.route('/login', methods=['POST'])
@@ -85,12 +77,13 @@ def login():
             session['user_id'] = user['id']
             session['role'] = user['role']
             session['fullname'] = user['fullname']
+            # Redirect to the function names defined below
             return redirect(url_for('admin_dashboard') if user['role'] == 'admin' else url_for('customer_dashboard'))
         
         flash('Invalid username or password', 'danger')
         return redirect(url_for('login_page'))
     except Exception as e:
-        return f"Login Error: {e}"
+        return f"Database Error: {e}"
 
 @app.route('/admin-dashboard')
 def admin_dashboard():
@@ -101,7 +94,7 @@ def admin_dashboard():
     cursor.execute("SELECT * FROM repairs")
     repairs = cursor.fetchall()
     
-    # Calculate stats for the summary cards
+    # Logic for the stat cards in your dashboard.html
     stats = {
         'total': len(repairs),
         'ongoing': sum(1 for r in repairs if r['status'] == 'Repairing'),
@@ -110,7 +103,7 @@ def admin_dashboard():
     }
     cursor.close()
     conn.close()
-    # Pass 'repairs' and stats to the dashboard template
+    # This renders your actual dashboard.html file
     return render_template('dashboard.html', repairs=repairs, **stats)
 
 @app.route('/customer-dashboard')
@@ -119,33 +112,17 @@ def customer_dashboard():
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    # Get only repairs belonging to this specific user
     cursor.execute("SELECT * FROM repairs WHERE user_id=%s", (session['user_id'],))
-    my_repairs = cursor.fetchall()
+    repairs = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('customer_dashboard.html', repairs=my_repairs)
+    # This renders your actual customer_dashboard.html file
+    return render_template('customer_dashboard.html', repairs=repairs)
 
-@app.route('/add-repair', methods=['GET', 'POST'])
+@app.route('/add-repair')
 def add_repair():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    
-    if request.method == 'POST':
-        # Logic to save the new repair data from the form
-        data = request.form
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = """INSERT INTO repairs (tracking_number, customer_name, item_name, item_brand, date_received, estimated_completion, repair_cost) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-        values = (data['tracking_number'], data['customer_name'], data['item_name'], 
-                  data['item_brand'], data['date_received'], data['estimated_completion'], data['repair_cost'])
-        cursor.execute(query, values)
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return redirect(url_for('admin_dashboard'))
-    
-    return render_template('add_repair.html')
+    return render_template('add_repair.html', today=date.today())
 
 @app.route('/repair-history')
 def repair_history():
