@@ -8,7 +8,7 @@ from datetime import date
 app = Flask(__name__)
 app.secret_key = "nbjsecret"
 
-# --- DATABASE CONNECTION (SSL ENABLED FOR CLOUD) ---
+# --- DATABASE CONNECTION ---
 def get_db_connection():
     try:
         return mysql.connector.connect(
@@ -17,7 +17,7 @@ def get_db_connection():
             user="avnadmin",
             password="AVNS_MqFJx335YPQw4FubVkz",
             database="defaultdb",
-            ssl_disabled=False  # Required for Aiven/Cloud DBs
+            ssl_disabled=False 
         )
     except Exception as e:
         print(f"Connection Error: {e}")
@@ -29,7 +29,6 @@ def setup_database():
     if conn:
         try:
             cursor = conn.cursor()
-            # Ensure users table exists
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INT AUTO_INCREMENT PRIMARY KEY, 
@@ -38,7 +37,6 @@ def setup_database():
                     fullname VARCHAR(100), 
                     role VARCHAR(20)
                 )""")
-            # Ensure repairs table exists with ALL 13 COLUMNS
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS repairs (
                     id INT AUTO_INCREMENT PRIMARY KEY, 
@@ -62,17 +60,14 @@ def setup_database():
         except Exception as e:
             print(f"Setup Error: {e}")
 
-# Run setup on startup
 setup_database()
 
-# --- MAINTENANCE & RECOVERY ROUTES ---
+# --- RECOVERY ---
 
 @app.route('/reset-database')
 def reset_db():
-    """Wipes tables to fix 'Internal Server Error' caused by old structures."""
     try:
         conn = get_db_connection()
-        if not conn: return "Database connection failed."
         cursor = conn.cursor()
         cursor.execute("DROP TABLE IF EXISTS repairs")
         cursor.execute("DROP TABLE IF EXISTS users")
@@ -80,30 +75,26 @@ def reset_db():
         cursor.close()
         conn.close()
         setup_database()
-        return "Database Wiped and Recreated! Now go to <a href='/force-admin'>/force-admin</a>"
+        return "Database Reset! Now visit <a href='/force-admin'>/force-admin</a>"
     except Exception as e:
         return f"Reset Error: {e}"
 
 @app.route('/force-admin')
 def force_admin():
-    """Resets admin login to admin / 1234."""
     try:
         conn = get_db_connection()
-        if not conn: return "Database connection failed."
         cursor = conn.cursor()
         cursor.execute("DELETE FROM users WHERE username = 'admin'")
-        cursor.execute("""
-            INSERT INTO users (username, password, fullname, role) 
-            VALUES (%s, %s, %s, %s)""", 
-            ('admin', '1234', 'System Administrator', 'admin'))
+        cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, %s)", 
+                       ('admin', '1234', 'System Administrator', 'admin'))
         conn.commit()
         cursor.close()
         conn.close()
-        return "Admin reset to: admin / 1234. <a href='/'>Login here</a>"
+        return "Admin reset to: admin / 1234. <a href='/'>Login</a>"
     except Exception as e:
-        return f"Force Admin Error: {e}"
+        return f"Error: {e}"
 
-# --- AUTHENTICATION ---
+# --- AUTH ---
 
 @app.route('/')
 def login_page():
@@ -113,22 +104,17 @@ def login_page():
 def login():
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
-    
     conn = get_db_connection()
-    if not conn: return "DB Connection Error", 500
-    
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
-
     if user:
         session['user_id'] = user['id']
         session['role'] = user['role']
         session['fullname'] = user['fullname']
         return redirect(url_for('admin_dashboard') if user['role'] == 'admin' else url_for('customer_dashboard'))
-    
     flash('Invalid credentials', 'danger')
     return redirect(url_for('login_page'))
 
@@ -137,12 +123,11 @@ def logout():
     session.clear()
     return redirect(url_for('login_page'))
 
-# --- ADMIN: DASHBOARD ---
+# --- ADMIN DASHBOARD ---
 
 @app.route('/admin-dashboard')
 def admin_dashboard():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -150,7 +135,6 @@ def admin_dashboard():
         rows = cursor.fetchall() or []
         cursor.close()
         conn.close()
-
         stats = {
             'total': len(rows),
             'ongoing': sum(1 for r in rows if r.get('status') not in ['Released', 'Completed']),
@@ -160,52 +144,76 @@ def admin_dashboard():
         }
         return render_template('dashboard.html', **stats)
     except Exception as e:
-        return f"Dashboard Logic Error: {e}. Try visiting /reset-database"
+        return f"Dashboard Error: {e}"
 
-# --- ADMIN: MANAGE JOBS ---
+# --- MISSING ROUTE FIXED: REPAIR HISTORY ---
+
+@app.route('/repair-history')
+def repair_history():
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    status_filter = request.args.get('status')
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    if status_filter:
+        cursor.execute("SELECT * FROM repairs WHERE status=%s ORDER BY id DESC", (status_filter,))
+    else:
+        cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
+    repairs = cursor.fetchall() or []
+    cursor.close()
+    conn.close()
+    return render_template('repair_history.html', repairs=repairs, status_filter=status_filter)
+
+# --- MISSING ROUTE FIXED: UPDATE STATUS ---
+
+@app.route('/update-status/<int:repair_id>', methods=['POST'])
+def update_status(repair_id):
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE repairs SET status=%s, estimated_completion=%s, technician_notes=%s, repair_cost=%s 
+        WHERE id=%s""", (
+            request.form.get('status'), 
+            request.form.get('estimated_completion') or None,
+            request.form.get('technician_notes'), 
+            request.form.get('repair_cost'), 
+            repair_id
+        ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('repair_history'))
+
+# --- MANAGE JOBS & ACCOUNTS ---
 
 @app.route('/add-repair', methods=['GET', 'POST'])
 def add_repair():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    
     if request.method == 'POST':
         try:
             track_id = "NBJ-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             conn = get_db_connection()
             cursor = conn.cursor()
-            
-            # 13 Data points matching the table structure
             data = (
-                track_id, 
-                request.form.get('customer_name', 'Unknown'), 
-                request.form.get('contact_number', 'N/A'),
-                request.form.get('item_name', 'Device'), 
-                request.form.get('item_brand', 'N/A'),
-                request.form.get('item_model', ''), 
-                request.form.get('issue_description', 'No details'),
-                "", # tech notes
-                'Received', 
-                date.today(),
-                request.form.get('estimated_completion') or None,
-                request.form.get('repair_cost') or 0.0, 
-                request.form.get('customer_id') or None
+                track_id, request.form.get('customer_name', 'Unknown'), 
+                request.form.get('contact_number', 'N/A'), request.form.get('item_name', 'Device'), 
+                request.form.get('item_brand', 'N/A'), request.form.get('item_model', ''), 
+                request.form.get('issue_description', 'No details'), "", 'Received', 
+                date.today(), request.form.get('estimated_completion') or None,
+                request.form.get('repair_cost') or 0.0, request.form.get('customer_id') or None
             )
-            
             cursor.execute("""
-                INSERT INTO repairs (
-                    tracking_number, customer_name, contact_number, item_name, 
-                    item_brand, item_model, issue_description, technician_notes, 
-                    status, date_received, estimated_completion, repair_cost, user_id
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
-                
+                INSERT INTO repairs (tracking_number, customer_name, contact_number, item_name, 
+                item_brand, item_model, issue_description, technician_notes, status, 
+                date_received, estimated_completion, repair_cost, user_id) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
             conn.commit()
             cursor.close()
             conn.close()
             return redirect(url_for('admin_dashboard'))
         except Exception as e:
-            return f"Error adding job: {e}. Check if you ran /reset-database."
+            return f"Error: {e}"
 
-    # Fetch customers for dropdown
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id, fullname FROM users WHERE role='customer'")
@@ -214,33 +222,26 @@ def add_repair():
     conn.close()
     return render_template('add_repair.html', customers=customers, today=date.today())
 
-# --- ADMIN: MANAGE ACCOUNTS ---
-
 @app.route('/manage-accounts', methods=['GET', 'POST'])
 def manage_accounts():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
-            cursor.execute("""
-                INSERT INTO users (username, password, fullname, role) 
-                VALUES (%s, %s, %s, 'customer')""", 
-                (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
+            cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", 
+                           (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
         elif action == 'delete':
             cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
         conn.commit()
-
     cursor.execute("SELECT * FROM users WHERE role='customer'")
     customers = cursor.fetchall() or []
     cursor.close()
     conn.close()
     return render_template('manage_accounts.html', customers=customers)
 
-# --- PUBLIC & CUSTOMER ---
+# --- PUBLIC ---
 
 @app.route('/track', methods=['GET', 'POST'])
 def track():
@@ -252,7 +253,7 @@ def track():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM repairs WHERE tracking_number=%s", (tn,))
         repair = cursor.fetchone()
-        if not repair: error = "Reference number not found."
+        if not repair: error = "Not found."
         cursor.close()
         conn.close()
     return render_template('track.html', repair=repair, error=error)
