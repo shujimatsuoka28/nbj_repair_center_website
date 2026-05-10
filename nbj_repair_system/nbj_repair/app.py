@@ -23,18 +23,16 @@ def get_db_connection():
         print(f"Connection Error: {e}")
         return None
 
-# --- DATABASE SETUP (FORCING COLUMNS) ---
+# --- DATABASE AUTO-REPAIR ---
 def setup_database():
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor()
-            # Create basic tables
             cursor.execute("CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50) UNIQUE, password VARCHAR(50), fullname VARCHAR(100), role VARCHAR(20))")
             cursor.execute("CREATE TABLE IF NOT EXISTS repairs (id INT AUTO_INCREMENT PRIMARY KEY, tracking_number VARCHAR(50), customer_name VARCHAR(100), status VARCHAR(50) DEFAULT 'Received')")
             
-            # THE FIX: Force missing columns into Aiven
-            columns = [
+            cols = [
                 "ALTER TABLE repairs ADD COLUMN contact_number VARCHAR(50) AFTER customer_name",
                 "ALTER TABLE repairs ADD COLUMN item_name VARCHAR(100) AFTER contact_number",
                 "ALTER TABLE repairs ADD COLUMN item_brand VARCHAR(100) AFTER item_name",
@@ -44,52 +42,69 @@ def setup_database():
                 "ALTER TABLE repairs ADD COLUMN repair_cost DECIMAL(10,2) DEFAULT 0.0 AFTER estimated_completion",
                 "ALTER TABLE repairs ADD COLUMN user_id INT AFTER repair_cost"
             ]
-            for col in columns:
-                try:
-                    cursor.execute(col)
-                except:
-                    pass # Skip if column already exists
+            for col in cols:
+                try: cursor.execute(col)
+                except: pass
             
             conn.commit()
             cursor.close()
             conn.close()
         except Exception as e:
-            print(f"Setup Error: {e}")
+            print(f"Database Setup Error: {e}")
 
 setup_database()
 
-# --- RECOVERY ---
-@app.route('/reset-database')
-def reset_db():
+# --- AUTH & LOGIN (FIXED) ---
+@app.route('/')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login():
+    u = request.form.get('username', '').strip()
+    p = request.form.get('password', '').strip()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (u, p))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if user:
+        session.update({
+            'user_id': user['id'], 
+            'role': user['role'], 
+            'fullname': user['fullname']
+        })
+        
+        # This is the fix: routing based on role
+        if user['role'] == 'admin':
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return redirect(url_for('customer_dashboard'))
+            
+    return redirect(url_for('login_page'))
+
+# --- CUSTOMER DASHBOARD ---
+@app.route('/customer-dashboard')
+def customer_dashboard():
+    if 'user_id' not in session: 
+        return redirect(url_for('login_page'))
+    
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-        cursor.execute("DROP TABLE IF EXISTS repairs")
-        cursor.execute("DROP TABLE IF EXISTS users")
-        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-        conn.commit()
+        cursor = conn.cursor(dictionary=True)
+        # Fetch ONLY the logged-in user's repairs
+        cursor.execute("SELECT * FROM repairs WHERE user_id = %s ORDER BY id DESC", (session['user_id'],))
+        my_repairs = cursor.fetchall() or []
         cursor.close()
         conn.close()
-        setup_database()
-        return "Database Cleaned & Rebuilt! Visit <a href='/force-admin'>/force-admin</a>"
+        return render_template('customer_dashboard.html', repairs=my_repairs)
     except Exception as e:
-        return f"Reset Error: {e}"
+        return f"Customer Dashboard Error: {str(e)}"
 
-@app.route('/force-admin')
-def force_admin():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM users WHERE username = 'admin'")
-        cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'admin')", ('admin', '1234', 'System Administrator'))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return "Admin reset! <a href='/'>Login</a>"
-    except Exception as e: return f"Error: {e}"
-
-# --- MAIN ROUTES ---
+# --- ADMIN ROUTES ---
 @app.route('/admin-dashboard')
 def admin_dashboard():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -100,16 +115,43 @@ def admin_dashboard():
         rows = cursor.fetchall() or []
         cursor.close()
         conn.close()
+        
         stats = {
             'total': len(rows),
             'ongoing': sum(1 for r in rows if r.get('status') == 'Received'),
             'waiting': sum(1 for r in rows if r.get('status') == 'Awaiting Parts'),
             'completed': sum(1 for r in rows if r.get('status') == 'Completed'),
             'recent': rows[:5],
-            'admin_name': session.get('fullname', 'Admin')
+            'admin_name': session.get('fullname', 'Administrator')
         }
         return render_template('dashboard.html', **stats)
-    except Exception as e: return f"Dashboard Error: {e}"
+    except Exception as e:
+        return f"Dashboard Error: {str(e)}"
+
+@app.route('/manage-accounts', methods=['GET', 'POST'])
+def manage_accounts():
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        if request.method == 'POST':
+            action = request.form.get('action')
+            if action == 'add':
+                u, p = request.form.get('username'), request.form.get('password')
+                f = request.form.get('full_name') or request.form.get('fullname')
+                cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", (u, p, f))
+                conn.commit()
+            elif action == 'delete':
+                cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
+                conn.commit()
+
+        cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
+        customers = cursor.fetchall() or []
+        cursor.close()
+        conn.close()
+        return render_template('manage_accounts.html', customers=customers)
+    except Exception as e:
+        return f"Account Page Error: {str(e)}"
 
 @app.route('/add-repair', methods=['GET', 'POST'])
 def add_repair():
@@ -133,7 +175,7 @@ def add_repair():
             cursor.close()
             conn.close()
             return redirect(url_for('admin_dashboard'))
-        except Exception as e: return f"Job Error: {e}"
+        except Exception as e: return f"Job Error: {str(e)}"
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -143,47 +185,6 @@ def add_repair():
     conn.close()
     return render_template('add_repair.html', customers=customers, today=date.today())
 
-@app.route('/manage-accounts', methods=['GET', 'POST'])
-def manage_accounts():
-    if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    if request.method == 'POST':
-        try:
-            # We look for 'action' OR 'add' to decide what to do
-            action = request.form.get('action')
-            
-            if action == 'add' or 'username' in request.form:
-                # This handles both 'full_name' and 'fullname' from HTML
-                u_name = request.form.get('username')
-                p_word = request.form.get('password')
-                f_name = request.form.get('full_name') or request.form.get('fullname') or "New Customer"
-                
-                cursor.execute("""
-                    INSERT INTO users (username, password, fullname, role) 
-                    VALUES (%s, %s, %s, 'customer')""", 
-                    (u_name, p_word, f_name))
-                conn.commit()
-                flash("Account added successfully!")
-                
-            elif action == 'delete':
-                user_id = request.form.get('user_id')
-                cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
-                conn.commit()
-                flash("Account deleted.")
-                
-        except Exception as e:
-            # This will show you exactly WHAT is wrong on the screen
-            return f"Account Error: {e}"
-    
-    # Fetch the list
-    cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
-    customers = cursor.fetchall() or []
-    cursor.close()
-    conn.close()
-    return render_template('manage_accounts.html', customers=customers)
 @app.route('/repair-history')
 def repair_history():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -209,27 +210,35 @@ def repair_detail(repair_id):
 @app.route('/track')
 def track(): return render_template('track.html')
 
-@app.route('/')
-def login_page(): return render_template('login.html')
-
-@app.route('/login', methods=['POST'])
-def login():
-    username, password = request.form.get('username', '').strip(), request.form.get('password', '').strip()
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
-    user = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    if user:
-        session.update({'user_id': user['id'], 'role': user['role'], 'fullname': user['fullname']})
-        return redirect(url_for('admin_dashboard') if user['role'] == 'admin' else url_for('customer_dashboard'))
-    return redirect(url_for('login_page'))
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login_page'))
+
+# --- RECOVERY ---
+@app.route('/reset-database')
+def reset_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+    cursor.execute("DROP TABLE IF EXISTS repairs")
+    cursor.execute("DROP TABLE IF EXISTS users")
+    cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+    conn.commit()
+    cursor.close()
+    conn.close()
+    setup_database()
+    return "Database Rebuilt! Visit <a href='/force-admin'>/force-admin</a>"
+
+@app.route('/force-admin')
+def force_admin():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("REPLACE INTO users (id, username, password, fullname, role) VALUES (1, 'admin', '1234', 'System Admin', 'admin')")
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return "Admin reset to admin/1234. <a href='/'>Login</a>"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)), debug=True)
