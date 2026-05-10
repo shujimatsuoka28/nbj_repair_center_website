@@ -93,6 +93,7 @@
         }
         .info-text { font-size: 0.85rem; color: var(--white-dim); line-height: 1.5; }
         .info-text strong { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--white-muted); margin-bottom: 2px; font-weight: 400; }
+        
         /* RIGHT PANEL */
         .right-panel {
             width: 440px;
@@ -108,18 +109,7 @@
             margin-bottom: 6px;
         }
         .login-header p { font-size: 0.86rem; color: var(--white-muted); }
-        /* TABS */
-        .login-tabs { display: flex; gap: 0; margin-bottom: 28px; border-radius: 8px; overflow: hidden; border: 1px solid var(--grey-border); }
-        .tab-btn {
-            flex: 1; padding: 10px;
-            background: none; border: none; cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.83rem; font-weight: 500;
-            color: var(--white-muted);
-            transition: all 0.2s;
-        }
-        .tab-btn.active { background: var(--red); color: #fff; }
-        /* FORM */
+        
         .form-group { margin-bottom: 18px; }
         label {
             display: block;
@@ -145,6 +135,7 @@
             transition: border-color 0.2s;
         }
         input:focus { outline: none; border-color: var(--red-light); background: rgba(255,255,255,0.07); }
+        
         .btn-login {
             width: 100%;
             background: var(--red);
@@ -159,6 +150,7 @@
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .btn-login:hover { background: var(--red-dark); }
+        
         .alert {
             padding: 11px 15px; border-radius: 7px; margin-bottom: 18px;
             font-size: 0.84rem; display: flex; align-items: center; gap: 8px;
@@ -170,7 +162,6 @@
             font-size: 0.76rem; color: var(--white-muted);
             text-align: center;
         }
-        /* RESPONSIVE */
         @media (max-width: 900px) {
             body { flex-direction: column; }
             .left-panel { padding: 40px 30px; }
@@ -216,14 +207,16 @@
         <h2>Welcome Back</h2>
         <p>Sign in to access the repair monitoring system.</p>
     </div>
-    <div class="login-tabs">
-        <button class="tab-btn active" onclick="setTab('admin')"><i class="fas fa-user-shield"></i> Admin</button>
-        <button class="tab-btn" onclick="setTab('customer')"><i class="fas fa-user"></i> Customer</button>
-    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert"><i class="fas fa-exclamation-circle"></i> {{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
    
-    <div class="alert"><i class="fas fa-exclamation-circle"></i>{{ msg }}</div>
-   
-    <form method="POST" action="/">
+    <form method="POST" action="{{ url_for('login') }}">
         <div class="form-group">
             <label>Username</label>
             <div class="input-wrap">
@@ -244,16 +237,9 @@
     </form>
     <div class="hint">
         <i class="fas fa-info-circle" style="color:var(--red-light)"></i>
-        Admin default: <strong>admin</strong> / <strong></strong><br>
+        Admin default: <strong>admin</strong> / <strong>1234</strong><br>
         Customers use their assigned account credentials.
     </div>
 </div>
-<script>
-function setTab(role) {
-    document.querySelectorAll('.tab-btn').forEach((b,i) => {
-        b.classList.toggle('active', (i===0 && role==='admin') || (i===1 && role==='customer'));
-    });
-}
-</script>
 </body>
 </html>
