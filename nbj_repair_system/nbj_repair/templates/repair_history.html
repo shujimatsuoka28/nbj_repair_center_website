@@ -12,7 +12,6 @@
         --text-bright: #ffffff;
         --text-dim: #777777;
         --border-thin: rgba(255, 255, 255, 0.05);
-        --input-bg: #0d0d0d;
     }
 
     body, .main { background-color: var(--bg-super-dark) !important; }
@@ -23,36 +22,26 @@
 
     .filter-tab { padding: 8px 18px; background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 20px; color: var(--text-dim); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; transition: 0.3s; white-space: nowrap; }
     .filter-tab:hover { border-color: #333; color: #fff; }
+    /* This "active" class now works with the backend status_filter variable */
     .filter-tab.active { background: var(--accent-red); border-color: var(--accent-red); color: #fff; box-shadow: 0 4px 12px rgba(255, 49, 49, 0.3); }
 
-    /* History Table Card */
-    .card { background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 16px; padding: 30px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
-    .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-    .card-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); display: flex; align-items: center; gap: 10px; }
-
     /* Table Layout */
+    .card { background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 16px; padding: 30px; }
     .table-wrap { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; min-width: 900px; }
-    th { padding: 15px; color: var(--text-dim); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 2px solid var(--border-thin); text-align: left; }
+    th { padding: 15px; color: var(--text-dim); font-size: 0.65rem; text-transform: uppercase; border-bottom: 2px solid var(--border-thin); text-align: left; }
     td { padding: 18px 15px; border-bottom: 1px solid var(--border-thin); color: #d1d1d1; font-size: 0.88rem; }
-    tr:hover td { background: rgba(255,255,255,0.01); }
-
+    
     .tracking-num { color: var(--accent-red); font-weight: 700; font-family: monospace; }
+    .btn-action { background: var(--accent-red); color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.7rem; font-weight: 800; border: none; cursor: pointer; }
+    .btn-outline { background: transparent; border: 1px solid var(--border-thin); color: var(--text-dim); padding: 7px 14px; border-radius: 6px; text-decoration: none; font-size: 0.7rem; }
 
-    /* Buttons */
-    .btn-action { background: var(--accent-red); color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border: none; cursor: pointer; transition: 0.3s; }
-    .btn-outline { background: transparent; border: 1px solid var(--border-thin); color: var(--text-dim); padding: 7px 14px; border-radius: 6px; text-decoration: none; font-size: 0.7rem; transition: 0.3s; }
-    .btn-outline:hover { border-color: var(--accent-red); color: #fff; }
-
-    /* Modal Styling - FIXED VISIBILITY */
+    /* Modal Overlay */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 1000; }
     .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal { background: #0d0d0d; border: 1px solid #222; border-radius: 16px; padding: 30px; max-width: 450px; width: 90%; transform: translateY(20px); transition: 0.3s; }
-    .modal-overlay.open .modal { transform: translateY(0); }
-
-    .form-group label { display: block; font-size: 0.65rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; font-weight: 700; }
-    input, select, textarea { width: 100%; background: #151515; border: 1px solid var(--border-thin); border-radius: 8px; padding: 12px; color: #fff; font-size: 0.9rem; margin-bottom: 15px; }
-    textarea { height: 80px; resize: none; }
+    .modal { background: #0d0d0d; border: 1px solid #222; border-radius: 16px; padding: 30px; max-width: 450px; width: 90%; }
+    
+    input, select, textarea { width: 100%; background: #151515; border: 1px solid var(--border-thin); border-radius: 8px; padding: 12px; color: #fff; margin-bottom: 15px; }
 </style>
 
 <div class="filter-tabs">
@@ -63,12 +52,6 @@
 </div>
 
 <div class="card">
-    <div class="card-header-flex">
-        <div class="card-title"><i class="fas fa-history"></i> Repair Database</div>
-        <a href="{{ url_for('add_repair') }}" class="btn-action"><i class="fas fa-plus"></i> New Entry</a>
-    </div>
-
-    {% if repairs %}
     <div class="table-wrap">
         <table>
             <thead>
@@ -88,14 +71,14 @@
                 <td><span class="tracking-num">{{ r['tracking_number'] }}</span></td>
                 <td>
                     <div style="font-weight: 600; color: #fff;">{{ r['customer_name'] }}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-dim);">{{ r['contact_number'] or 'Walk-in' }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);">{{ r['contact_number'] or 'N/A' }}</div>
                 </td>
                 <td>
                     <strong>{{ r['item_name'] }}</strong>
                     {% if r['item_brand'] %}<br><small style="color: var(--text-dim);">{{ r['item_brand'] }}</small>{% endif %}
                 </td>
                 <td style="color: var(--text-dim);">{{ r['date_received'] }}</td>
-                <td style="font-weight: 600;">{{ '%.2f'|format(r['repair_cost'] or 0) }}</td>
+                <td style="font-weight: 600; color: #00ff00;">₱{{ '%.2f'|format(r['repair_cost'] or 0) }}</td>
                 <td>
                     <span class="badge badge-{{ r['status'].lower().replace(' ','') }}">
                         {{ r['status'] }}
@@ -104,7 +87,7 @@
                 <td style="text-align: right;">
                     <div style="display:flex; gap:8px; justify-content: flex-end;">
                         <a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-outline">View</a>
-                        <button onclick="openUpdateModal({{ r['id'] }},'{{ r['status'] }}','{{ r['estimated_completion'] or '' }}','{{ r['technician_notes'] or '' }}','{{ r['repair_cost'] }}')" class="btn-action" style="padding: 7px 12px;">
+                        <button onclick="openUpdateModal({{ r['id'] }}, '{{ r['status'] }}', '{{ r['estimated_completion'] }}', '{{ r['issue_description']|replace('\n', ' ')|replace('\'', '\\\'') }}', '{{ r['repair_cost'] }}')" class="btn-action">
                             <i class="fas fa-edit"></i>
                         </button>
                     </div>
@@ -114,46 +97,34 @@
             </tbody>
         </table>
     </div>
-    {% else %}
-    <div style="text-align: center; padding: 60px; color: var(--text-dim);">
-        <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 15px; opacity: 0.2;"></i>
-        <p>No records found matching this status.</p>
-    </div>
-    {% endif %}
 </div>
 
 <div class="modal-overlay" id="updateModal">
     <div class="modal">
-        <div style="font-size: 0.8rem; font-weight: 800; color: var(--accent-red); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">
-            <i class="fas fa-sync-alt"></i> Update Repair Progress
-        </div>
+        <h3 style="color: var(--accent-red); margin-bottom: 20px;">Update Repair</h3>
         <form method="POST" id="updateForm">
-            <div class="form-group">
-                <label>Current Status</label>
-                <select name="status" id="modalStatus">
-                    <option value="Received">Received</option>
-                    <option value="Diagnosing">Diagnosing</option>
-                    <option value="Repairing">Repairing</option>
-                    <option value="Waiting for Parts">Waiting for Parts</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Released">Released</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Est. Completion Date</label>
-                <input type="date" name="estimated_completion" id="modalEst">
-            </div>
-            <div class="form-group">
-                <label>Total Cost (₱)</label>
-                <input type="number" name="repair_cost" id="modalCost" min="0" step="0.01">
-            </div>
-            <div class="form-group">
-                <label>Internal Technician Notes</label>
-                <textarea name="technician_notes" id="modalNotes" placeholder="Describe findings (e.g., Shorted capacitor, PCB repair)..."></textarea>
-            </div>
-            <div style="display:flex; gap:12px; margin-top:10px;">
-                <button type="submit" class="btn-action" style="flex: 1; padding: 12px;">Apply Update</button>
-                <button type="button" class="btn-outline" style="flex: 1;" onclick="closeModal()">Dismiss</button>
+            <label style="font-size: 0.7rem; color: #777;">STATUS</label>
+            <select name="status" id="modalStatus">
+                <option value="Received">Received</option>
+                <option value="Diagnosing">Diagnosing</option>
+                <option value="Repairing">Repairing</option>
+                <option value="Waiting for Parts">Waiting for Parts</option>
+                <option value="Completed">Completed</option>
+                <option value="Released">Released</option>
+            </select>
+
+            <label style="font-size: 0.7rem; color: #777;">EST. COMPLETION</label>
+            <input type="date" name="estimated_completion" id="modalEst">
+
+            <label style="font-size: 0.7rem; color: #777;">COST (₱)</label>
+            <input type="number" name="repair_cost" id="modalCost" step="0.01">
+
+            <label style="font-size: 0.7rem; color: #777;">TECHNICIAN NOTES</label>
+            <textarea name="technician_notes" id="modalNotes" style="width: 100%; height: 80px; background: #151515; border: 1px solid var(--border-thin); color: #fff; padding: 10px; border-radius: 8px; resize: none;"></textarea>
+
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button type="submit" class="btn-action" style="flex:1;">Save Update</button>
+                <button type="button" class="btn-outline" style="flex:1;" onclick="closeModal()">Cancel</button>
             </div>
         </form>
     </div>
@@ -161,26 +132,21 @@
 
 <script>
 function openUpdateModal(id, status, est, notes, cost) {
-    // Dynamically set the form action to the specific repair ID
+    // Set the action URL dynamically for the specific ID
     document.getElementById('updateForm').action = '/update-status/' + id;
     
-    // Set values in the modal
+    // Fill the fields
     document.getElementById('modalStatus').value = status;
-    document.getElementById('modalEst').value = est === 'None' ? '' : est;
-    document.getElementById('modalNotes').value = (notes === 'None' || notes === 'null') ? '' : notes;
-    document.getElementById('modalCost').value = cost;
+    document.getElementById('modalEst').value = (est === 'None' || !est) ? '' : est;
+    document.getElementById('modalNotes').value = (notes === 'None' || !notes) ? '' : notes;
+    document.getElementById('modalCost').value = cost || 0;
     
-    // Show modal
+    // Show the modal
     document.getElementById('updateModal').classList.add('open');
 }
 
 function closeModal() {
     document.getElementById('updateModal').classList.remove('open');
 }
-
-// Close modal if clicking outside the box
-document.getElementById('updateModal').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-});
 </script>
 {% endblock %}
