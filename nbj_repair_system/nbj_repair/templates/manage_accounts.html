@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard — NBJ Repair Center{% endblock %}
+{% block title %}Admin Dashboard — NBJ{% endblock %}
 
 {% block content %}
 <style>
-    /* Super Dark Grey / OLED Theme Foundations */
     :root {
         --bg-super-dark: #050505;
         --card-bg: #0a0a0a;
@@ -12,14 +11,11 @@
         --text-bright: #ffffff;
         --text-dim: #777777;
         --border-thin: rgba(255, 255, 255, 0.05);
-        --glass-bg: rgba(255, 255, 255, 0.02);
     }
 
-    body {
-        background-color: var(--bg-super-dark) !important;
-    }
+    body, .main { background-color: var(--bg-super-dark) !important; }
 
-    /* Stats Grid Overhaul */
+    /* Stats Grid */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -35,12 +31,13 @@
         display: flex;
         align-items: center;
         gap: 20px;
-        transition: transform 0.3s ease;
+        transition: 0.3s ease;
     }
 
     .stat-card:hover {
         transform: translateY(-5px);
-        border-color: rgba(255, 49, 49, 0.2);
+        border-color: rgba(255, 49, 49, 0.3);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     .stat-icon {
@@ -55,77 +52,26 @@
         font-size: 1.2rem;
     }
 
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: var(--text-bright);
-        line-height: 1;
-    }
+    .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-bright); line-height: 1; }
+    .stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); font-weight: 700; margin-top: 4px; }
 
-    .stat-label {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--text-dim);
-        font-weight: 700;
-        margin-top: 4px;
-    }
-
-    /* Table & Main Card */
-    .card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 16px;
-        padding: 30px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        margin-bottom: 30px;
-    }
-
-    .card-title {
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: var(--text-dim);
-        margin-bottom: 25px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+    /* Main Table Card */
+    .card { background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 16px; padding: 30px; margin-bottom: 30px; }
+    .card-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+    .card-title i { color: var(--accent-red); }
 
     /* Refined Table */
     .table-wrap { width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 900px; }
-
-    th {
-        padding: 15px;
-        color: var(--text-dim);
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        border-bottom: 2px solid var(--border-thin);
-        text-align: left;
-    }
-
-    td {
-        padding: 18px 15px;
-        border-bottom: 1px solid var(--border-thin);
-        color: #d1d1d1;
-        font-size: 0.88rem;
-    }
-
+    table { width: 100%; border-collapse: collapse; min-width: 850px; }
+    th { padding: 15px; color: var(--text-dim); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 2px solid var(--border-thin); text-align: left; }
+    td { padding: 18px 15px; border-bottom: 1px solid var(--border-thin); color: #d1d1d1; font-size: 0.88rem; }
     tr:hover td { background: rgba(255,255,255,0.01); }
-
-    .tracking-num {
-        color: var(--accent-red);
-        font-weight: 700;
-        font-family: 'JetBrains Mono', monospace;
-    }
+    .tracking-num { color: var(--accent-red); font-weight: 700; font-family: monospace; }
 
     /* Action Banner */
     .action-banner {
         background: linear-gradient(145deg, #0d0d0d, #050505);
-        border: 1px solid rgba(255, 49, 49, 0.1);
+        border: 1px solid var(--border-thin);
         border-radius: 16px;
         padding: 25px;
         display: flex;
@@ -135,34 +81,10 @@
         gap: 20px;
     }
 
-    .btn-primary {
-        background: var(--accent-red);
-        color: #fff;
-        padding: 10px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        transition: 0.3s;
-    }
-
-    .btn-secondary {
-        background: transparent;
-        border: 1px solid var(--border-thin);
-        color: var(--text-dim);
-        padding: 10px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 0.75rem;
-        font-weight: 700;
-        transition: 0.3s;
-    }
-
-    .btn-secondary:hover {
-        border-color: #444;
-        color: #fff;
-    }
+    .btn-primary { background: var(--accent-red); color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; transition: 0.3s; border: none; cursor: pointer; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,49,49,0.3); }
+    .btn-secondary { background: transparent; border: 1px solid var(--border-thin); color: var(--text-dim); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 700; transition: 0.3s; }
+    .btn-secondary:hover { border-color: #444; color: #fff; }
 </style>
 
 <div class="stats-grid">
@@ -170,34 +92,34 @@
         <div class="stat-icon"><i class="fas fa-tools"></i></div>
         <div>
             <div class="stat-value">{{ ongoing }}</div>
-            <div class="stat-label">Ongoing Repairs</div>
+            <div class="stat-label">Active Repairs</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+        <div>
+            <div class="stat-value">{{ waiting }}</div>
+            <div class="stat-label">Awaiting Parts</div>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
         <div>
             <div class="stat-value">{{ completed }}</div>
-            <div class="stat-label">Completed</div>
+            <div class="stat-label">Ready for Pickup</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon"><i class="fas fa-box-open"></i></div>
-        <div>
-            <div class="stat-value">{{ released }}</div>
-            <div class="stat-label">Released</div>
-        </div>
-    </div>
-    <div class="stat-card" style="border-color: rgba(255, 49, 49, 0.15);">
-        <div class="stat-icon" style="background: rgba(255, 49, 49, 0.15);"><i class="fas fa-clipboard-list"></i></div>
+        <div class="stat-icon"><i class="fas fa-history"></i></div>
         <div>
             <div class="stat-value">{{ total }}</div>
-            <div class="stat-label">Total Jobs</div>
+            <div class="stat-label">Lifetime Jobs</div>
         </div>
     </div>
 </div>
 
 <div class="card">
-    <div class="card-title"><i class="fas fa-clock"></i> Recent Activity</div>
+    <div class="card-title"><i class="fas fa-bolt"></i> Live Activity Feed</div>
     
     {% if recent %}
     <div class="table-wrap">
@@ -208,33 +130,27 @@
                     <th>Customer</th>
                     <th>Equipment</th>
                     <th>Received</th>
-                    <th>Est. Completion</th>
                     <th>Status</th>
-                    <th style="text-align: right;">Action</th>
+                    <th style="text-align: right;">Management</th>
                 </tr>
             </thead>
             <tbody>
             {% for r in recent %}
             <tr>
                 <td><span class="tracking-num">{{ r['tracking_number'] }}</span></td>
-                <td><div style="font-weight: 600;">{{ r['customer_name'] }}</div></td>
+                <td><div style="font-weight: 600; color: #fff;">{{ r['customer_name'] }}</div></td>
                 <td>
                     <strong>{{ r['item_name'] }}</strong>
                     {% if r['item_brand'] %}<br><small style="color: var(--text-dim);">{{ r['item_brand'] }}</small>{% endif %}
                 </td>
                 <td style="color: var(--text-dim);">{{ r['date_received'] }}</td>
                 <td>
-                    <span style="color: {% if r['estimated_completion'] %}#ffae00{% else %}var(--text-dim){% endif %};">
-                        {{ r['estimated_completion'] or '—' }}
-                    </span>
-                </td>
-                <td>
                     <span class="badge badge-{{ r['status'].lower().replace(' ','') }}">
                         {{ r['status'] }}
                     </span>
                 </td>
                 <td style="text-align: right;">
-                    <a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.65rem;">View Details</a>
+                    <a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.65rem;">Manage</a>
                 </td>
             </tr>
             {% endfor %}
@@ -244,21 +160,34 @@
     {% else %}
     <div style="text-align: center; padding: 50px; color: var(--text-dim);">
         <i class="fas fa-clipboard" style="font-size: 2rem; opacity: 0.1; margin-bottom: 15px;"></i>
-        <p>No repair jobs recorded yet.</p>
+        <p>No active repair jobs in the system.</p>
     </div>
     {% endif %}
 </div>
 
 <div class="action-banner">
     <div>
-        <div style="font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #fff; margin-bottom: 4px;">NBJ Electronics Repair Center</div>
+        <div style="font-weight: 800; font-size: 1rem; color: #fff; margin-bottom: 4px; text-transform: uppercase;">Administrative Controls</div>
         <div style="font-size: 0.75rem; color: var(--text-dim);">
-            <i class="fas fa-map-marker-alt" style="color: var(--accent-red); margin-right: 5px;"></i> Sta. Clara Congressional Rd, Brgy. H2, Dasmariñas
+            Logged in as <strong>{{ current_user.username }}</strong> • NBJ Internal System
         </div>
     </div>
     <div style="display: flex; gap: 12px;">
-        <a href="{{ url_for('repair_history') }}" class="btn-secondary">View History</a>
+        <a href="{{ url_for('repair_history') }}" class="btn-secondary">Full Logs</a>
         <a href="{{ url_for('add_repair') }}" class="btn-primary"><i class="fas fa-plus"></i> New Repair Job</a>
+    </div>
+</div>
+
+<div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="card" style="margin-bottom: 0; padding: 20px;">
+        <div class="card-title" style="margin-bottom: 15px;"><i class="fas fa-user-cog"></i> Account Security</div>
+        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 15px;">Update your administrative password or change your display name.</p>
+        <a href="#" class="btn-secondary" style="width: 100%; text-align: center; display: block;">Change Password</a>
+    </div>
+    <div class="card" style="margin-bottom: 0; padding: 20px;">
+        <div class="card-title" style="margin-bottom: 15px;"><i class="fas fa-database"></i> Backup & Export</div>
+        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 15px;">Export current repair data to CSV for offline reporting or accounting.</p>
+        <a href="#" class="btn-secondary" style="width: 100%; text-align: center; display: block;">Generate CSV Report</a>
     </div>
 </div>
 {% endblock %}
