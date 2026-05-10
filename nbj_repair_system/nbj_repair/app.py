@@ -225,6 +225,11 @@ def repair_detail(repair_id):
     conn.close()
     return render_template('repair_detail.html', repair=repair)
 
+# --- PUBLIC TRACKING ---
+@app.route('/track')
+def track():
+    return render_template('track.html')
+
 # --- RECOVERY & SETUP ---
 @app.route('/reset-database')
 def reset_db():
