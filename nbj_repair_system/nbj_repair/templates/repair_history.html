@@ -1,4 +1,8 @@
+{% extends "base.html" %}
 
+{% block title %}Repair History — NBJ{% endblock %}
+
+{% block content %}
 <style>
     /* OLED Super Dark Theme Foundations */
     :root {
@@ -181,7 +185,7 @@
     <a href="{{ url_for('repair_history') }}" class="filter-tab {% if not status_filter %}active{% endif %}">All Records</a>
     {% for status in ['Received', 'Diagnosing', 'Repairing', 'Waiting for Parts', 'Completed', 'Released'] %}
     <a href="{{ url_for('repair_history', status=status) }}" class="filter-tab {% if status_filter == status %}active{% endif %}">{{ status }}</a>
-    
+    {% endfor %}
 </div>
 
 <div class="card">
@@ -190,6 +194,7 @@
         <a href="{{ url_for('add_repair') }}" class="btn-action"><i class="fas fa-plus"></i> New Entry</a>
     </div>
 
+    {% if repairs %}
     <div class="table-wrap">
         <table>
             <thead>
@@ -204,7 +209,7 @@
                 </tr>
             </thead>
             <tbody>
-           
+            {% for r in repairs %}
             <tr>
                 <td><span class="tracking-num">{{ r['tracking_number'] }}</span></td>
                 <td>
@@ -219,7 +224,7 @@
                 <td style="font-weight: 600;">{{ '%.2f'|format(r['repair_cost']) }}</td>
                 <td>
                     <span class="badge badge-{{ r['status'].lower().replace(' ','') }}">
-                        
+                        {{ r['status'] }}
                     </span>
                 </td>
                 <td style="text-align: right;">
@@ -231,16 +236,16 @@
                     </div>
                 </td>
             </tr>
-            
+            {% endfor %}
             </tbody>
         </table>
     </div>
-    
+    {% else %}
     <div style="text-align: center; padding: 60px; color: var(--text-dim);">
         <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 15px; opacity: 0.2;"></i>
         <p>No records found matching this status.</p>
     </div>
-    
+    {% endif %}
 </div>
 
 <div class="modal-overlay" id="updateModal">
@@ -296,3 +301,4 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
 });
 </script>
+{% endblock %}
