@@ -47,7 +47,19 @@ def admin_dashboard():
     except Exception as e:
         return f"Dashboard Error: {e}"
 
-# --- 1. REPAIR DETAIL ROUTE (Fixed for Dashboard) ---
+# --- REPAIR HISTORY (This fixes your current error!) ---
+@app.route('/repair-history')
+def repair_history():
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
+    repairs = cursor.fetchall() or []
+    cursor.close()
+    conn.close()
+    return render_template('repair_history.html', repairs=repairs)
+
+# --- REPAIR DETAIL ---
 @app.route('/repair-detail/<int:repair_id>')
 def repair_detail(repair_id):
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -57,37 +69,30 @@ def repair_detail(repair_id):
     repair = cursor.fetchone()
     cursor.close()
     conn.close()
-    if not repair:
-        return "Repair Job Not Found", 404
+    if not repair: return "Repair Job Not Found", 404
     return render_template('repair_detail.html', repair=repair)
 
-# --- 2. MANAGE ACCOUNTS ROUTE ---
+# --- MANAGE ACCOUNTS ---
 @app.route('/manage-accounts', methods=['GET', 'POST'])
 def manage_accounts():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
-            # Matches your likely HTML input names: username, password, full_name
-            cursor.execute("""
-                INSERT INTO users (username, password, fullname, role) 
-                VALUES (%s, %s, %s, 'customer')""", 
-                (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
+            cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", 
+                           (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
         elif action == 'delete':
             cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
         conn.commit()
-    
-    # Fetching as 'full_name' to keep your HTML loops happy
     cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
     customers = cursor.fetchall() or []
     cursor.close()
     conn.close()
     return render_template('manage_accounts.html', customers=customers)
 
-# --- ADD REPAIR (Matches your HTML names) ---
+# --- ADD REPAIR ---
 @app.route('/add-repair', methods=['GET', 'POST'])
 def add_repair():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -97,31 +102,23 @@ def add_repair():
             conn = get_db_connection()
             cursor = conn.cursor()
             data = (
-                track_id, 
-                request.form.get('customer_name'), 
-                request.form.get('contact_number'),
-                request.form.get('item_name'), 
-                request.form.get('item_brand'),
-                request.form.get('issue_description'),
-                'Received', 
-                request.form.get('date_received'), 
-                request.form.get('estimated_completion') or None, 
-                request.form.get('repair_cost') or 0.0, 
-                request.form.get('customer_id') or None
+                track_id, request.form.get('customer_name'), request.form.get('contact_number'),
+                request.form.get('item_name'), request.form.get('item_brand'),
+                request.form.get('issue_description'), 'Received', 
+                request.form.get('date_received'), request.form.get('estimated_completion') or None, 
+                request.form.get('repair_cost') or 0.0, request.form.get('customer_id') or None
             )
             cursor.execute("""
-                INSERT INTO repairs (
-                    tracking_number, customer_name, contact_number, item_name, 
-                    item_brand, issue_description, status, 
-                    date_received, estimated_completion, repair_cost, user_id
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
+                INSERT INTO repairs (tracking_number, customer_name, contact_number, item_name, 
+                item_brand, issue_description, status, date_received, 
+                estimated_completion, repair_cost, user_id) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
             conn.commit()
             cursor.close()
             conn.close()
             return redirect(url_for('admin_dashboard'))
         except Exception as e:
             return f"Job Error: {e}"
-            
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id, fullname as full_name, username FROM users WHERE role='customer'")
@@ -129,6 +126,18 @@ def add_repair():
     cursor.close()
     conn.close()
     return render_template('add_repair.html', customers=customers, today=date.today())
+
+# --- CUSTOMER DASHBOARD ---
+@app.route('/customer-dashboard')
+def customer_dashboard():
+    if 'user_id' not in session: return redirect(url_for('login_page'))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM repairs WHERE user_id=%s", (session['user_id'],))
+    repairs = cursor.fetchall() or []
+    cursor.close()
+    conn.close()
+    return render_template('customer_dashboard.html', repairs=repairs)
 
 # --- LOGIN & AUTH ---
 @app.route('/')
