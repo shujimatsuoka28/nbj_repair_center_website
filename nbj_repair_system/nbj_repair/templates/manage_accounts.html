@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard — NBJ{% endblock %}
+{% block title %}Manage Accounts — NBJ{% endblock %}
 
 {% block content %}
 <style>
@@ -15,179 +15,82 @@
 
     body, .main { background-color: var(--bg-super-dark) !important; }
 
-    /* Stats Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-
-    .stat-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 16px;
-        padding: 25px;
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        transition: 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(255, 49, 49, 0.3);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    .stat-icon {
-        width: 50px;
-        height: 50px;
-        background: rgba(255, 49, 49, 0.1);
-        color: var(--accent-red);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-    }
-
-    .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-bright); line-height: 1; }
-    .stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); font-weight: 700; margin-top: 4px; }
-
-    /* Main Table Card */
     .card { background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 16px; padding: 30px; margin-bottom: 30px; }
     .card-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
     .card-title i { color: var(--accent-red); }
 
-    /* Refined Table */
+    /* Form Styling */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end; }
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    .input-group label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+    input { 
+        background: #111; border: 1px solid var(--border-thin); border-radius: 8px; 
+        padding: 12px; color: #fff; font-size: 0.9rem; transition: 0.3s;
+    }
+    input:focus { outline: none; border-color: var(--accent-red); background: #151515; }
+
+    /* Table Styling */
     .table-wrap { width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 850px; }
+    table { width: 100%; border-collapse: collapse; }
     th { padding: 15px; color: var(--text-dim); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 2px solid var(--border-thin); text-align: left; }
     td { padding: 18px 15px; border-bottom: 1px solid var(--border-thin); color: #d1d1d1; font-size: 0.88rem; }
-    tr:hover td { background: rgba(255,255,255,0.01); }
-    .tracking-num { color: var(--accent-red); font-weight: 700; font-family: monospace; }
 
-    /* Action Banner */
-    .action-banner {
-        background: linear-gradient(145deg, #0d0d0d, #050505);
-        border: 1px solid var(--border-thin);
-        border-radius: 16px;
-        padding: 25px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 20px;
-    }
-
-    .btn-primary { background: var(--accent-red); color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; transition: 0.3s; border: none; cursor: pointer; }
+    .btn-primary { background: var(--accent-red); color: #fff; padding: 12px 24px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,49,49,0.3); }
-    .btn-secondary { background: transparent; border: 1px solid var(--border-thin); color: var(--text-dim); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 700; transition: 0.3s; }
-    .btn-secondary:hover { border-color: #444; color: #fff; }
+    
+    .btn-delete { background: transparent; border: 1px solid rgba(255, 49, 49, 0.2); color: var(--accent-red); padding: 6px 12px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; text-transform: uppercase; font-weight: 700; }
+    .btn-delete:hover { background: var(--accent-red); color: #fff; }
 </style>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon"><i class="fas fa-tools"></i></div>
-        <div>
-            <div class="stat-value">{{ ongoing }}</div>
-            <div class="stat-label">Active Repairs</div>
+<div class="card">
+    <div class="card-title"><i class="fas fa-user-plus"></i> Register New Customer Account</div>
+    <form method="POST" action="/manage-accounts" class="form-grid">
+        <input type="hidden" name="action" value="add">
+        
+        <div class="input-group">
+            <label>Full Name</label>
+            <input type="text" name="full_name" placeholder="John Doe" required>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
-        <div>
-            <div class="stat-value">{{ waiting }}</div>
-            <div class="stat-label">Awaiting Parts</div>
+        <div class="input-group">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="johndoe123" required>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-        <div>
-            <div class="stat-value">{{ completed }}</div>
-            <div class="stat-label">Ready for Pickup</div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="••••••••" required>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon"><i class="fas fa-history"></i></div>
-        <div>
-            <div class="stat-value">{{ total }}</div>
-            <div class="stat-label">Lifetime Jobs</div>
-        </div>
-    </div>
+        
+        <button type="submit" class="btn-primary">Create User</button>
+    </form>
 </div>
 
 <div class="card">
-    <div class="card-title"><i class="fas fa-bolt"></i> Live Activity Feed</div>
-    
-    {% if recent %}
+    <div class="card-title"><i class="fas fa-users-cog"></i> Existing Customer Accounts</div>
     <div class="table-wrap">
         <table>
             <thead>
                 <tr>
-                    <th>Tracking #</th>
-                    <th>Customer</th>
-                    <th>Equipment</th>
-                    <th>Received</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Management</th>
+                    <th>Customer Name</th>
+                    <th>Username</th>
+                    <th style="text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
-            {% for r in recent %}
-            <tr>
-                <td><span class="tracking-num">{{ r['tracking_number'] }}</span></td>
-                <td><div style="font-weight: 600; color: #fff;">{{ r['customer_name'] }}</div></td>
-                <td>
-                    <strong>{{ r['item_name'] }}</strong>
-                    {% if r['item_brand'] %}<br><small style="color: var(--text-dim);">{{ r['item_brand'] }}</small>{% endif %}
-                </td>
-                <td style="color: var(--text-dim);">{{ r['date_received'] }}</td>
-                <td>
-                    <span class="badge badge-{{ r['status'].lower().replace(' ','') }}">
-                        {{ r['status'] }}
-                    </span>
-                </td>
-                <td style="text-align: right;">
-                    <a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.65rem;">Manage</a>
-                </td>
-            </tr>
-            {% endfor %}
+                {% for c in customers %}
+                <tr>
+                    <td><strong style="color: #fff;">{{ c.full_name }}</strong></td>
+                    <td style="font-family: monospace; color: var(--text-dim);">@{{ c.username }}</td>
+                    <td style="text-align: right;">
+                        <form method="POST" action="/manage-accounts" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="user_id" value="{{ c.id }}">
+                            <button type="submit" class="btn-delete" onclick="return confirm('Delete this account?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
-    </div>
-    {% else %}
-    <div style="text-align: center; padding: 50px; color: var(--text-dim);">
-        <i class="fas fa-clipboard" style="font-size: 2rem; opacity: 0.1; margin-bottom: 15px;"></i>
-        <p>No active repair jobs in the system.</p>
-    </div>
-    {% endif %}
-</div>
-
-<div class="action-banner">
-    <div>
-        <div style="font-weight: 800; font-size: 1rem; color: #fff; margin-bottom: 4px; text-transform: uppercase;">Administrative Controls</div>
-        <div style="font-size: 0.75rem; color: var(--text-dim);">
-            Logged in as <strong>{{ current_user.username }}</strong> • NBJ Internal System
-        </div>
-    </div>
-    <div style="display: flex; gap: 12px;">
-        <a href="{{ url_for('repair_history') }}" class="btn-secondary">Full Logs</a>
-        <a href="{{ url_for('add_repair') }}" class="btn-primary"><i class="fas fa-plus"></i> New Repair Job</a>
-    </div>
-</div>
-
-<div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-    <div class="card" style="margin-bottom: 0; padding: 20px;">
-        <div class="card-title" style="margin-bottom: 15px;"><i class="fas fa-user-cog"></i> Account Security</div>
-        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 15px;">Update your administrative password or change your display name.</p>
-        <a href="#" class="btn-secondary" style="width: 100%; text-align: center; display: block;">Change Password</a>
-    </div>
-    <div class="card" style="margin-bottom: 0; padding: 20px;">
-        <div class="card-title" style="margin-bottom: 15px;"><i class="fas fa-database"></i> Backup & Export</div>
-        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 15px;">Export current repair data to CSV for offline reporting or accounting.</p>
-        <a href="#" class="btn-secondary" style="width: 100%; text-align: center; display: block;">Generate CSV Report</a>
     </div>
 </div>
 {% endblock %}
