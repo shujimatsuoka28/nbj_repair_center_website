@@ -8,251 +8,50 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         :root {
-            --red: #c0392b;
-            --red-dark: #96281b;
-            --red-light: #e74c3c;
-            --grey: #1a1a1a;
-            --grey-mid: #222;
-            --grey-light: #3a3a3a;
-            --grey-border: #444;
-            --white: #ffffff;
-            --white-dim: rgba(255,255,255,0.85);
-            --white-muted: rgba(255,255,255,0.5);
+            --red: #c0392b; --red-dark: #96281b; --red-light: #e74c3c;
+            --grey: #1a1a1a; --grey-mid: #222; --grey-light: #3a3a3a;
+            --grey-border: #444; --white: #ffffff;
+            --white-dim: rgba(255,255,255,0.85); --white-muted: rgba(255,255,255,0.5);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--grey);
-            min-height: 100vh;
-            display: flex;
-        }
-        /* LEFT PANEL */
-        .left-panel {
-            flex: 1;
-            background: var(--grey-mid);
-            display: flex; flex-direction: column; justify-content: center;
-            padding: 60px;
-            position: relative;
-            overflow: hidden;
-            border-right: 1px solid var(--grey-border);
-        }
-        .left-panel::before {
-            content: '';
-            position: absolute; inset: 0;
-            background:
-                radial-gradient(circle at 20% 80%, rgba(192,57,43,0.12) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(192,57,43,0.08) 0%, transparent 50%);
-        }
-        .watermark {
-            position: absolute;
-            font-family: 'Playfair Display', serif;
-            font-size: 9rem;
-            font-weight: 800;
-            color: rgba(255,255,255,0.03);
-            line-height: 1;
-            right: -20px; bottom: 40px;
-            letter-spacing: -5px;
-            user-select: none;
-        }
-        .left-content { position: relative; z-index: 1; }
-        .red-line {
-            width: 56px; height: 4px;
-            background: var(--red);
-            border-radius: 2px;
-            margin-bottom: 28px;
-        }
-        .company-name {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.8rem;
-            font-weight: 700;
-            line-height: 1.15;
-            color: var(--white);
-            margin-bottom: 12px;
-        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--grey); min-height: 100vh; display: flex; }
+        .left-panel { flex: 1; background: var(--grey-mid); display: flex; flex-direction: column; justify-content: center; padding: 60px; position: relative; overflow: hidden; border-right: 1px solid var(--grey-border); }
+        .watermark { position: absolute; font-family: 'Playfair Display', serif; font-size: 9rem; font-weight: 800; color: rgba(255,255,255,0.03); right: -20px; bottom: 40px; letter-spacing: -5px; user-select: none; }
+        .company-name { font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 700; color: var(--white); margin-bottom: 12px; }
         .company-name span { color: var(--red-light); }
-        .tagline {
-            font-size: 0.92rem;
-            color: var(--white-muted);
-            margin-bottom: 40px;
-            line-height: 1.6;
-            max-width: 380px;
-        }
-        .info-items { display: flex; flex-direction: column; gap: 14px; }
-        .info-item {
-            display: flex; align-items: flex-start; gap: 14px;
-        }
-        .info-icon {
-            width: 36px; height: 36px;
-            background: rgba(192,57,43,0.15);
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--red-light);
-            font-size: 0.85rem;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        .info-text { font-size: 0.85rem; color: var(--white-dim); line-height: 1.5; }
-        .info-text strong { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--white-muted); margin-bottom: 2px; font-weight: 400; }
-        /* RIGHT PANEL */
-        .right-panel {
-            width: 440px;
-            display: flex; flex-direction: column; justify-content: center;
-            padding: 60px 50px;
-            background: var(--grey);
-        }
-        .login-header { margin-bottom: 36px; }
-        .login-header h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.9rem; font-weight: 600;
-            color: var(--white);
-            margin-bottom: 6px;
-        }
-        .login-header p { font-size: 0.86rem; color: var(--white-muted); }
-        /* TABS */
-        .login-tabs { display: flex; gap: 0; margin-bottom: 28px; border-radius: 8px; overflow: hidden; border: 1px solid var(--grey-border); }
-        .tab-btn {
-            flex: 1; padding: 10px;
-            background: none; border: none; cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.83rem; font-weight: 500;
-            color: var(--white-muted);
-            transition: all 0.2s;
-        }
-        .tab-btn.active { background: var(--red); color: #fff; }
-        /* FORM */
-        .form-group { margin-bottom: 18px; }
-        label {
-            display: block;
-            font-size: 0.73rem;
-            text-transform: uppercase; letter-spacing: 1px;
-            color: var(--white-muted);
-            margin-bottom: 7px;
-        }
-        .input-wrap { position: relative; }
-        .input-wrap i {
-            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
-            color: var(--white-muted); font-size: 0.85rem;
-        }
-        input {
-            width: 100%;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--grey-border);
-            border-radius: 8px;
-            color: var(--white);
-            padding: 12px 14px 12px 40px;
-            font-size: 0.9rem;
-            font-family: 'DM Sans', sans-serif;
-            transition: border-color 0.2s;
-        }
-        input:focus { outline: none; border-color: var(--red-light); background: rgba(255,255,255,0.07); }
-        .btn-login {
-            width: 100%;
-            background: var(--red);
-            color: #fff;
-            border: none; border-radius: 8px;
-            padding: 13px;
-            font-size: 0.95rem; font-weight: 600;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 4px;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-login:hover { background: var(--red-dark); }
-        .alert {
-            padding: 11px 15px; border-radius: 7px; margin-bottom: 18px;
-            font-size: 0.84rem; display: flex; align-items: center; gap: 8px;
-            background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.3); color: #ec7063;
-        }
-        .hint {
-            margin-top: 20px; padding-top: 16px;
-            border-top: 1px solid var(--grey-border);
-            font-size: 0.76rem; color: var(--white-muted);
-            text-align: center;
-        }
-        /* RESPONSIVE */
-        @media (max-width: 900px) {
-            body { flex-direction: column; }
-            .left-panel { padding: 40px 30px; }
-            .company-name { font-size: 2rem; }
-            .right-panel { width: 100%; padding: 40px 30px; }
-        }
+        .right-panel { width: 440px; display: flex; flex-direction: column; justify-content: center; padding: 60px 50px; background: var(--grey); }
+        .alert { padding: 11px 15px; border-radius: 7px; margin-bottom: 18px; font-size: 0.84rem; display: flex; align-items: center; gap: 8px; background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.3); color: #ec7063; }
+        input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--grey-border); border-radius: 8px; color: var(--white); padding: 12px 14px 12px 40px; margin-bottom: 15px; }
+        .btn-login { width: 100%; background: var(--red); color: #fff; border: none; border-radius: 8px; padding: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
     </style>
 </head>
 <body>
 <div class="left-panel">
     <div class="watermark">NBJ</div>
     <div class="left-content">
-        <div class="red-line"></div>
         <h1 class="company-name">NBJ<br><span>Electronics</span><br>Repair Center</h1>
-        <p class="tagline">Refrigeration repair, aircon supply, installation, cleaning and repair — your trusted service partner.</p>
-        <div class="info-items">
-            <div class="info-item">
-                <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
-                <div class="info-text">
-                    <strong>Address</strong>
-                    Sta. Clara Congressional Road, Brgy. H2,<br>Dasmariñas, Cavite
-                </div>
-            </div>
-            <div class="info-item">
-                <div class="info-icon"><i class="fas fa-envelope"></i></div>
-                <div class="info-text">
-                    <strong>Email</strong>
-                    nbj.dasmacavite2@gmail.com
-                </div>
-            </div>
-            <div class="info-item">
-                <div class="info-icon"><i class="fas fa-phone"></i></div>
-                <div class="info-text">
-                    <strong>Contact</strong>
-                    0916-553-9782
-                </div>
-            </div>
-        </div>
+        <p style="color: var(--white-muted)">Sta. Clara Congressional Road, Brgy. H2, Dasmariñas, Cavite</p>
     </div>
 </div>
 <div class="right-panel">
-    <div class="login-header">
-        <h2>Welcome Back</h2>
-        <p>Sign in to access the repair monitoring system.</p>
-    </div>
-    <div class="login-tabs">
-        <button class="tab-btn active" onclick="setTab('admin')"><i class="fas fa-user-shield"></i> Admin</button>
-        <button class="tab-btn" onclick="setTab('customer')"><i class="fas fa-user"></i> Customer</button>
-    </div>
-   
-   
-    <form method="POST" action="/">
-        <div class="form-group">
-            <label>Username</label>
-            <div class="input-wrap">
-                <i class="fas fa-user"></i>
-                <input type="text" name="username" placeholder="Enter your username" required autocomplete="username">
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Password</label>
-            <div class="input-wrap">
-                <i class="fas fa-lock"></i>
-                <input type="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
-            </div>
-        </div>
-        <button type="submit" class="btn-login">
-            <i class="fas fa-sign-in-alt"></i> Sign In
-        </button>
+    <h2>Welcome Back</h2>
+    <p style="color: var(--white-muted); margin-bottom: 20px;">Sign in to access the system.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert">
+            <i class="fas fa-exclamation-circle"></i> {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/login">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit" class="btn-login">Sign In</button>
     </form>
-    <div class="hint">
-        <i class="fas fa-info-circle" style="color:var(--red-light)"></i>
-        Admin default: <strong>admin</strong> / <strong></strong><br>
-        Customers use their assigned account credentials.
-    </div>
 </div>
-<script>
-function setTab(role) {
-    document.querySelectorAll('.tab-btn').forEach((b,i) => {
-        b.classList.toggle('active', (i===0 && role==='admin') || (i===1 && role==='customer'));
-    });
-}
-</script>
 </body>
 </html>
