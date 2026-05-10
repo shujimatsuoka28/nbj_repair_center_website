@@ -114,7 +114,7 @@ def customer_dashboard():
         return render_template('customer_dashboard.html', repairs=my_repairs)
     except Exception as e: return f"Error: {e}"
 
-# --- CORE FEATURES ---
+# --- ACCOUNTS & REPAIRS ---
 @app.route('/manage-accounts', methods=['GET', 'POST'])
 def manage_accounts():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -150,8 +150,8 @@ def add_repair():
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT id FROM users WHERE fullname = %s AND role = 'customer'", (c_name,))
-            existing_user = cursor.fetchone()
-            u_id = existing_user['id'] if existing_user else None
+            ex_user = cursor.fetchone()
+            u_id = ex_user['id'] if ex_user else None
 
             data = (
                 track_id, c_name, request.form.get('contact_number'),
@@ -177,18 +177,42 @@ def add_repair():
     conn.close()
     return render_template('add_repair.html', customers=customers, today=date.today())
 
+# --- REPAIR HISTORY & UPDATES ---
 @app.route('/repair-history')
 def repair_history():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    status_filter = request.args.get('status')
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
+        if status_filter:
+            cursor.execute("SELECT * FROM repairs WHERE status = %s ORDER BY id DESC", (status_filter,))
+        else:
+            cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
         repairs = cursor.fetchall() or []
         cursor.close()
         conn.close()
-        return render_template('repair_history.html', repairs=repairs)
+        return render_template('repair_history.html', repairs=repairs, status_filter=status_filter)
     except Exception as e: return f"Error: {e}"
+
+@app.route('/update-status/<int:repair_id>', methods=['POST'])
+def update_status(repair_id):
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    status = request.form.get('status')
+    est = request.form.get('estimated_completion') or None
+    cost = request.form.get('repair_cost') or 0
+    notes = request.form.get('technician_notes')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""UPDATE repairs SET status=%s, estimated_completion=%s, 
+                          repair_cost=%s, issue_description=%s WHERE id=%s""", 
+                       (status, est, cost, notes, repair_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e: print(f"Update Error: {e}")
+    return redirect(url_for('repair_history'))
 
 @app.route('/repair-detail/<int:repair_id>')
 def repair_detail(repair_id):
@@ -201,7 +225,7 @@ def repair_detail(repair_id):
     conn.close()
     return render_template('repair_detail.html', repair=repair)
 
-# --- RECOVERY ---
+# --- RECOVERY & SETUP ---
 @app.route('/reset-database')
 def reset_db():
     conn = get_db_connection()
@@ -214,7 +238,7 @@ def reset_db():
     cursor.close()
     conn.close()
     setup_database()
-    return "Database Rebuilt! <a href='/force-admin'>Force Admin</a>"
+    return "Database Reset! <a href='/force-admin'>Force Admin</a>"
 
 @app.route('/force-admin')
 def force_admin():
@@ -224,7 +248,7 @@ def force_admin():
     conn.commit()
     cursor.close()
     conn.close()
-    return "Admin reset! <a href='/'>Login</a>"
+    return "Admin reset to admin/1234! <a href='/'>Login</a>"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)), debug=True)
