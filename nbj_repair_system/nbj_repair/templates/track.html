@@ -1,4 +1,8 @@
+{% extends "base.html" %}
 
+{% block title %}Track Repair — NBJ{% endblock %}
+
+{% block content %}
 <style>
     /* Super Dark Grey / OLED Theme Foundations */
     :root {
@@ -200,36 +204,38 @@
         </form>
     </div>
 
-    
+    {% if error %}
     <div class="alert-error">
         <i class="fas fa-exclamation-triangle"></i> {{ error }}
     </div>
-    
+    {% endif %}
 
-   
+    {% if repair %}
     <div class="card" style="border-color: rgba(255, 49, 49, 0.2);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <div>
                 <div class="label" style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">Tracking ID</div>
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-red);">
-                    
+                    {{ repair['tracking_number'] }}
                 </div>
             </div>
-            
+            {% set s = repair['status'] %}
             <span class="badge badge-{{ s.lower().replace(' ','') }}" style="padding: 8px 16px; font-size: 0.75rem;">
-                
+                {{ s }}
             </span>
         </div>
 
-      
+        {% set statuses = ['Received','Diagnosing','Repairing','Waiting for Parts','Completed','Released'] %}
+        {% set current_idx = statuses.index(repair['status']) if repair['status'] in statuses else 0 %}
         <div class="progress-container">
             <div class="progress-track">
-                
+                {% for st in statuses %}
+                {% set idx = loop.index0 %}
                 <div class="status-step">
                     <div class="step-line {% if idx <= current_idx %}active{% endif %}"></div>
                     <div class="step-label {% if idx <= current_idx %}active{% endif %}">{{ st }}</div>
                 </div>
-              
+                {% endfor %}
             </div>
         </div>
 
@@ -249,21 +255,22 @@
             <div class="data-point">
                 <div class="label">Target Completion</div>
                 <div class="value" style="color: {% if repair['estimated_completion'] %}#ffae00{% else %}var(--text-dim){% endif %}">
-                    
+                    {{ repair['estimated_completion'] or 'Pending Assessment' }}
                 </div>
             </div>
         </div>
 
-      
+        {% if repair['technician_notes'] %}
         <div class="notes-box">
             <div class="label" style="font-size: 0.55rem; color: var(--accent-red); margin-bottom: 5px;">Latest Technician Update</div>
-            
+            {{ repair['technician_notes'] }}
         </div>
-        
+        {% endif %}
     </div>
 
     <div style="text-align: center; color: #444; font-size: 0.7rem; padding: 20px; letter-spacing: 0.5px;">
         Questions about your repair? Contact support at <strong>0916-553-9782</strong>
     </div>
-    
+    {% endif %}
 </div>
+{% endblock %}
