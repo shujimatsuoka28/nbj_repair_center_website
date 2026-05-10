@@ -128,45 +128,81 @@ def admin_dashboard():
     except Exception as e:
         return f"Dashboard Error: {str(e)}"
 
+# --- 1. UPDATED MANAGE ACCOUNTS (Links when account is created) ---
 @app.route('/manage-accounts', methods=['GET', 'POST'])
 def manage_accounts():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
         if request.method == 'POST':
             action = request.form.get('action')
-            
             if action == 'add':
                 u = request.form.get('username')
                 p = request.form.get('password')
                 f = request.form.get('full_name') or request.form.get('fullname')
                 
-                # 1. Create the new customer account
+                # Create user
                 cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", (u, p, f))
-                new_user_id = cursor.lastrowid # Get the ID of the user we just created
+                new_id = cursor.lastrowid
                 
-                # 2. AUTO-LINK FEATURE: 
-                # Find any repairs that match this name exactly and update them with the new user_id
-                cursor.execute("UPDATE repairs SET user_id = %s WHERE customer_name = %s", (new_user_id, f))
-                
+                # MAGIC LINK: Update all existing repairs with this name
+                cursor.execute("UPDATE repairs SET user_id = %s WHERE customer_name = %s", (new_id, f))
                 conn.commit()
-                flash(f"Account created for {f} and existing jobs linked!")
 
             elif action == 'delete':
                 cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
                 conn.commit()
 
-        # Fetch list of customers for the table
         cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
         customers = cursor.fetchall() or []
         cursor.close()
         conn.close()
         return render_template('manage_accounts.html', customers=customers)
     except Exception as e:
-        return f"Account Page Error: {str(e)}"
+        return f"Account Error: {str(e)}"
 
+# --- 2. UPDATED ADD REPAIR (Links if account already exists) ---
+@app.route('/add-repair', methods=['GET', 'POST'])
+def add_repair():
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    if request.method == 'POST':
+        try:
+            track_id = "NBJ-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            c_name = request.form.get('customer_name')
+            
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            
+            # CHECK: Does this name already have an account?
+            cursor.execute("SELECT id FROM users WHERE fullname = %s AND role = 'customer'", (c_name,))
+            existing_user = cursor.fetchone()
+            u_id = existing_user['id'] if existing_user else None
+
+            data = (
+                track_id, c_name, request.form.get('contact_number'),
+                request.form.get('item_name'), request.form.get('item_brand'),
+                request.form.get('issue_description'), 'Received', 
+                request.form.get('date_received'), request.form.get('estimated_completion') or None, 
+                float(request.form.get('repair_cost') or 0), u_id
+            )
+            cursor.execute("""INSERT INTO repairs (tracking_number, customer_name, contact_number, item_name, 
+                item_brand, issue_description, status, date_received, estimated_completion, repair_cost, user_id) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return redirect(url_for('admin_dashboard'))
+        except Exception as e: return f"Job Error: {str(e)}"
+    
+    # Still fetch customer list just in case you want to see them
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id, fullname as full_name FROM users WHERE role='customer'")
+    customers = cursor.fetchall() or []
+    cursor.close()
+    conn.close()
+    return render_template('add_repair.html', customers=customers, today=date.today())
 @app.route('/add-repair', methods=['GET', 'POST'])
 def add_repair():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
