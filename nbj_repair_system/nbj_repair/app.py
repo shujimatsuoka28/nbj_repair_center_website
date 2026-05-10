@@ -148,14 +148,30 @@ def manage_accounts():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    
     if request.method == 'POST':
         action = request.form.get('action')
+        
+        # Adding a new customer
         if action == 'add':
-            cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", 
-                           (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
+            username = request.form.get('username')
+            password = request.form.get('password')
+            # Note: We use 'full_name' from HTML and put it into 'fullname' in DB
+            full_name = request.form.get('full_name') 
+            
+            cursor.execute("""
+                INSERT INTO users (username, password, fullname, role) 
+                VALUES (%s, %s, %s, 'customer')""", 
+                (username, password, full_name))
+        
+        # Deleting a customer
         elif action == 'delete':
-            cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
+            user_id = request.form.get('user_id')
+            cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
+            
         conn.commit()
+    
+    # This fetches the list to show on the page
     cursor.execute("SELECT id, username, fullname as full_name FROM users WHERE role='customer'")
     customers = cursor.fetchall() or []
     cursor.close()
