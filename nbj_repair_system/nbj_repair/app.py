@@ -16,7 +16,7 @@ def get_db_connection():
         user="avnadmin",
         password="AVNS_MqFJx335YPQw4FubVkz",
         database="defaultdb",
-        ssl_disabled=False # Critical for Aiven
+        ssl_disabled=False 
     )
 
 # --- DATABASE SETUP ---
@@ -60,7 +60,23 @@ def setup_database():
 
 setup_database()
 
-# --- EMERGENCY / MAINTENANCE ROUTES ---
+# --- RECOVERY ROUTES (Run these if you get errors) ---
+
+@app.route('/reset-database')
+def reset_db():
+    """This clears the database structure to fix Internal Server Errors."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS repairs")
+        cursor.execute("DROP TABLE IF EXISTS users")
+        conn.commit()
+        cursor.close()
+        conn.close()
+        setup_database()
+        return "Database Wiped and Recreated! Now visit <a href='/force-admin'>/force-admin</a>"
+    except Exception as e:
+        return f"Error: {e}"
 
 @app.route('/force-admin')
 def force_admin():
@@ -75,11 +91,11 @@ def force_admin():
         conn.commit()
         cursor.close()
         conn.close()
-        return "Admin account reset to: <b>admin / 1234</b>. <a href='/'>Go to Login</a>"
+        return "Admin reset to: <b>admin / 1234</b>. <a href='/'>Go to Login</a>"
     except Exception as e:
-        return f"Error resetting admin: {e}"
+        return f"Error: {e}"
 
-# --- AUTHENTICATION ROUTES ---
+# --- AUTHENTICATION ---
 
 @app.route('/')
 def login_page():
@@ -87,8 +103,8 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.form.get('username').strip()
-    password = request.form.get('password').strip()
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -103,7 +119,7 @@ def login():
         session['fullname'] = user['fullname']
         return redirect(url_for('admin_dashboard') if user['role'] == 'admin' else url_for('customer_dashboard'))
     
-    flash('Invalid username or password', 'danger')
+    flash('Invalid credentials', 'danger')
     return redirect(url_for('login_page'))
 
 @app.route('/logout')
@@ -111,7 +127,7 @@ def logout():
     session.clear()
     return redirect(url_for('login_page'))
 
-# --- ADMIN ROUTES ---
+# --- ADMIN: MANAGE JOBS ---
 
 @app.route('/admin-dashboard')
 def admin_dashboard():
@@ -122,7 +138,6 @@ def admin_dashboard():
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
-
     stats = {
         'total': len(rows),
         'ongoing': sum(1 for r in rows if r['status'] not in ['Released', 'Completed']),
@@ -138,29 +153,27 @@ def add_repair():
     
     if request.method == 'POST':
         track_id = "NBJ-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        received_date = request.form.get('date_received') or date.today()
-
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # FIXED: Data tuple now matches the 13 columns in the INSERT query
+        # Matches exactly 13 columns in the repairs table
         data = (
             track_id, 
             request.form.get('customer_name'), 
             request.form.get('contact_number'),
             request.form.get('item_name'), 
             request.form.get('item_brand'),
-            request.form.get('item_model', ''), # Added placeholder for model
+            request.form.get('item_model', ''), 
             request.form.get('issue_description'),
-            "", # technician_notes (empty on start)
+            "", # tech notes
             'Received', 
-            received_date,
+            date.today(),
             request.form.get('estimated_completion') or None,
             request.form.get('repair_cost') or 0.0, 
             request.form.get('customer_id') or None
         )
         
-        # FIXED: Column list must match the values provided
         cursor.execute("""
             INSERT INTO repairs (
                 tracking_number, customer_name, contact_number, item_name, 
@@ -173,6 +186,7 @@ def add_repair():
         conn.close()
         return redirect(url_for('admin_dashboard'))
 
+    # Fetch customers for dropdown
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id, fullname FROM users WHERE role='customer'")
@@ -181,38 +195,7 @@ def add_repair():
     conn.close()
     return render_template('add_repair.html', customers=customers, today=date.today())
 
-@app.route('/repair-history')
-def repair_history():
-    if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    status_filter = request.args.get('status')
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    if status_filter:
-        cursor.execute("SELECT * FROM repairs WHERE status=%s ORDER BY id DESC", (status_filter,))
-    else:
-        cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
-    
-    repairs = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return render_template('repair_history.html', repairs=repairs, status_filter=status_filter)
-
-@app.route('/update-status/<int:repair_id>', methods=['POST'])
-def update_status(repair_id):
-    if session.get('role') != 'admin': return redirect(url_for('login_page'))
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE repairs SET status=%s, estimated_completion=%s, technician_notes=%s, repair_cost=%s 
-        WHERE id=%s""", (
-            request.form.get('status'), request.form.get('estimated_completion') or None,
-            request.form.get('technician_notes'), request.form.get('repair_cost'), repair_id
-        ))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return redirect(url_for('repair_history'))
+# --- ADMIN: MANAGE ACCOUNTS ---
 
 @app.route('/manage-accounts', methods=['GET', 'POST'])
 def manage_accounts():
@@ -223,7 +206,6 @@ def manage_accounts():
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
-            # FIXED: Column names must match the 'users' table structure
             cursor.execute("""
                 INSERT INTO users (username, password, fullname, role) 
                 VALUES (%s, %s, %s, 'customer')""", 
@@ -238,44 +220,22 @@ def manage_accounts():
     conn.close()
     return render_template('manage_accounts.html', customers=customers)
 
-# --- SHARED ---
+# --- PUBLIC TRACKING ---
 
 @app.route('/track', methods=['GET', 'POST'])
 def track():
     repair = None
     error = None
     if request.method == 'POST':
-        tn = request.form.get('tracking_number').strip()
+        tn = request.form.get('tracking_number', '').strip()
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM repairs WHERE tracking_number=%s", (tn,))
         repair = cursor.fetchone()
-        if not repair: error = "Reference number not found."
+        if not repair: error = "Tracking number not found."
         cursor.close()
         conn.close()
     return render_template('track.html', repair=repair, error=error)
-
-@app.route('/customer-dashboard')
-def customer_dashboard():
-    if 'user_id' not in session: return redirect(url_for('login_page'))
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM repairs WHERE user_id=%s ORDER BY id DESC", (session['user_id'],))
-    repairs = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return render_template('customer_dashboard.html', repairs=repairs)
-
-@app.route('/repair/<int:repair_id>')
-def repair_detail(repair_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM repairs WHERE id=%s", (repair_id,))
-    repair = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    if not repair: return "Repair not found", 404
-    return render_template('repair_detail.html', repair=repair)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
