@@ -1,8 +1,13 @@
+{% extends "base.html" %}
 
+{% block title %}Dashboard — NBJ Repair Center{% endblock %}
+
+{% block page_title %}
     <span style="font-weight: 300; color: #666;">Overview /</span> 
     <span style="font-weight: 600; margin-left: 5px; color: #fff;">Dashboard</span>
+{% endblock %}
 
-
+{% block content %}
 <style>
     /* Absolute Black Theme */
     :root {
@@ -197,7 +202,7 @@
         <a href="{{ url_for('add_repair') }}" class="btn-action"><i class="fas fa-plus"></i> Add Job</a>
     </div>
 
-    
+    {% if recent %}
     <div class="table-wrap">
         <table>
             <thead>
@@ -210,29 +215,29 @@
                 </tr>
             </thead>
             <tbody>
-          
+            {% for r in recent %}
             <tr>
-                <td><span class="tracking-num"></span></td>
-                <td style="font-weight: 600;"></td>
-                <td><span style="color: #444; margin-left: 5px;"></span></td>
+                <td><span class="tracking-num">{{ r['tracking_number'] }}</span></td>
+                <td style="font-weight: 600;">{{ r['customer_name'] }}</td>
+                <td>{{ r['item_name'] }} <span style="color: #444; margin-left: 5px;">{{ r['item_brand'] or '' }}</span></td>
                 <td>
                     <span class="badge badge-{{ r['status'].lower().replace(' ','') }}">
-                      
+                        {{ r['status'] }}
                     </span>
                 </td>
                 <td style="text-align: right;">
                     <a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-outline">Details</a>
                 </td>
             </tr>
-         
+            {% endfor %}
             </tbody>
         </table>
     </div>
-
+    {% else %}
     <div style="text-align: center; padding: 40px; color: var(--text-dim);">
         <p>Queue is currently empty.</p>
     </div>
-    
+    {% endif %}
 </div>
 
 <div style="padding: 20px; border-top: 1px solid var(--border-thin); display: flex; justify-content: space-between; align-items: center;">
@@ -242,3 +247,5 @@
     </div>
     <a href="{{ url_for('repair_history') }}" style="color: var(--accent-red); font-size: 0.8rem; font-weight: 700; text-decoration: none;">VIEW ALL RECORDS →</a>
 </div>
+
+{% endblock %}
