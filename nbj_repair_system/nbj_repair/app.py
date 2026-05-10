@@ -15,12 +15,11 @@ def get_db_connection():
         database="defaultdb"
     )
 
-# 2. SELF-REPAIR: This creates your table automatically
+# 2. SELF-REPAIR: Runs once to ensure the table exists
 def setup_database():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Create table if it doesn't exist
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -30,7 +29,6 @@ def setup_database():
                 role VARCHAR(20)
             )
         """)
-        # Add the admin user if the table is empty
         cursor.execute("SELECT COUNT(*) FROM users")
         if cursor.fetchone()[0] == 0:
             cursor.execute("""
@@ -40,21 +38,20 @@ def setup_database():
         conn.commit()
         cursor.close()
         conn.close()
-        print("✅ Database is ready!")
     except Exception as e:
-        print(f"❌ Database setup failed: {e}")
+        print(f"Database setup error: {e}")
 
-# Run the setup before the app starts
 setup_database()
 
+# 3. ROUTES
 @app.route('/')
 def login_page():
     return render_template('login.html')
 
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.form['username']
-    password = request.form['password']
+    username = request.form.get('username')
+    password = request.form.get('password')
 
     try:
         conn = get_db_connection()
@@ -68,12 +65,33 @@ def login():
             session['user_id'] = user['id']
             session['role'] = user['role']
             session['fullname'] = user['fullname']
-            return redirect('/admin-dashboard') if user['role'] == 'admin' else redirect('/customer-dashboard')
+            
+            if user['role'] == 'admin':
+                return redirect('/admin-dashboard')
+            else:
+                return redirect('/customer-dashboard')
 
         flash('Invalid username or password', 'danger')
         return redirect('/')
     except Exception as e:
-        return f"Error: {e}"
+        return f"Database error: {e}"
+
+@app.route('/admin-dashboard')
+def admin_dashboard():
+    if 'role' in session and session['role'] == 'admin':
+        return f"<h1>Admin Dashboard</h1><p>Welcome, {session.get('fullname')}!</p><a href='/logout'>Logout</a>"
+    return redirect('/')
+
+@app.route('/customer-dashboard')
+def customer_dashboard():
+    if 'user_id' in session:
+        return f"<h1>Customer Dashboard</h1><p>Welcome, {session.get('fullname')}!</p><a href='/logout'>Logout</a>"
+    return redirect('/')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
