@@ -4,7 +4,6 @@
 
 {% block content %}
 <style>
-    /* Super Dark Grey / OLED Theme Foundations */
     :root {
         --bg-super-dark: #050505;
         --card-bg: #0a0a0a;
@@ -16,176 +15,45 @@
         --input-bg: #0d0d0d;
     }
 
-    body {
-        background-color: var(--bg-super-dark) !important;
-    }
+    body, .main { background-color: var(--bg-super-dark) !important; }
 
-    .track-container {
-        max-width: 650px;
-        margin: 0 auto;
-        padding-top: 20px;
-    }
+    .track-container { max-width: 650px; margin: 0 auto; padding-top: 20px; }
 
     /* Search Card */
-    .card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 16px;
-        padding: 35px;
-        margin-bottom: 25px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-    }
-
-    .card-title {
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: var(--text-dim);
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .card-subtitle {
-        font-size: 0.85rem;
-        color: var(--text-dim);
-        margin-bottom: 25px;
-        line-height: 1.5;
-    }
+    .card { background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 16px; padding: 35px; margin-bottom: 25px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+    .card-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    .card-subtitle { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 25px; line-height: 1.5; }
 
     /* Input Styling */
-    .search-flex {
-        display: flex;
-        gap: 12px;
-    }
+    .search-flex { display: flex; gap: 12px; }
+    input[type="text"] { flex: 1; background: var(--input-bg); border: 1px solid var(--border-thin); border-radius: 10px; padding: 14px 18px; color: var(--text-bright); font-family: monospace; font-size: 1rem; letter-spacing: 1px; transition: 0.3s; }
+    input[type="text"]:focus { outline: none; border-color: var(--accent-red); box-shadow: 0 0 15px rgba(255, 49, 49, 0.1); }
 
-    input[type="text"] {
-        flex: 1;
-        background: var(--input-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 10px;
-        padding: 14px 18px;
-        color: var(--text-bright);
-        font-family: 'JetBrains Mono', 'Monaco', monospace;
-        font-size: 1rem;
-        letter-spacing: 1px;
-        transition: 0.3s;
-    }
-
-    input[type="text"]:focus {
-        outline: none;
-        border-color: var(--accent-red);
-        box-shadow: 0 0 15px rgba(255, 49, 49, 0.1);
-    }
-
-    .btn-track {
-        background: var(--accent-gradient);
-        color: #fff;
-        border: none;
-        padding: 0 25px;
-        border-radius: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        cursor: pointer;
-        transition: 0.3s;
-    }
-
-    .btn-track:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(255, 49, 49, 0.3);
-    }
+    .btn-track { background: var(--accent-gradient); color: #fff; border: none; padding: 0 25px; border-radius: 10px; font-weight: 800; text-transform: uppercase; font-size: 0.75rem; cursor: pointer; transition: 0.3s; }
+    .btn-track:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 49, 49, 0.3); }
 
     /* Status Progress Bar */
-    .progress-container {
-        margin: 35px 0;
-    }
-
-    .progress-track {
-        display: flex;
-        justify-content: space-between;
-        position: relative;
-    }
-
-    .status-step {
-        flex: 1;
-        text-align: center;
-        position: relative;
-        z-index: 1;
-    }
-
-    .step-line {
-        height: 4px;
-        background: #1a1a1a;
-        border-radius: 2px;
-        margin-bottom: 8px;
-        transition: 0.4s;
-    }
-
-    .step-line.active {
-        background: var(--accent-red);
-        box-shadow: 0 0 10px rgba(255, 49, 49, 0.4);
-    }
-
-    .step-label {
-        font-size: 0.55rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--text-dim);
-    }
-
-    .step-label.active {
-        color: var(--text-bright);
-    }
+    .progress-container { margin: 35px 0; overflow-x: hidden; }
+    .progress-track { display: flex; justify-content: space-between; position: relative; }
+    .status-step { flex: 1; text-align: center; position: relative; z-index: 1; }
+    .step-line { height: 4px; background: #1a1a1a; border-radius: 2px; margin-bottom: 10px; transition: 0.4s; }
+    .step-line.active { background: var(--accent-red); box-shadow: 0 0 10px rgba(255, 49, 49, 0.4); }
+    .step-label { font-size: 0.52rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); transition: 0.3s; }
+    .step-label.active { color: var(--text-bright); }
 
     /* Result Details */
-    .result-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        padding-top: 20px;
-        border-top: 1px solid var(--border-thin);
-    }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 25px; border-top: 1px solid var(--border-thin); }
+    .data-point .label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+    .data-point .value { font-size: 0.95rem; color: var(--text-bright); font-weight: 500; }
 
-    .data-point .label {
-        font-size: 0.6rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--text-dim);
-        margin-bottom: 4px;
-    }
+    .notes-box { margin-top: 25px; padding: 18px; background: rgba(255, 255, 255, 0.02); border-radius: 12px; font-size: 0.88rem; color: #d1d1d1; line-height: 1.6; border-left: 3px solid var(--accent-red); }
 
-    .data-point .value {
-        font-size: 0.95rem;
-        color: var(--text-bright);
-        font-weight: 500;
-    }
+    .alert-error { background: rgba(255, 49, 49, 0.1); border: 1px solid rgba(255, 49, 49, 0.2); color: #ff8080; padding: 15px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
 
-    .notes-box {
-        margin-top: 20px;
-        padding: 15px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 8px;
-        font-size: 0.85rem;
-        color: #bbb;
-        line-height: 1.6;
-        border-left: 2px solid var(--accent-red);
-    }
-
-    .alert-error {
-        background: rgba(255, 49, 49, 0.1);
-        border: 1px solid rgba(255, 49, 49, 0.2);
-        color: #ff8080;
-        padding: 15px;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    @media (max-width: 500px) {
+        .step-label { display: none; }
+        .step-label.active { display: block; font-size: 0.6rem; margin-top: 5px; }
+        .result-grid { grid-template-columns: 1fr; }
     }
 </style>
 
@@ -193,12 +61,12 @@
     <div class="card">
         <div class="card-title"><i class="fas fa-search"></i> Tracking Portal</div>
         <p class="card-subtitle">
-            Enter your unique reference number (e.g., <strong>NBJ-123456</strong>) to view the current status of your equipment.
+            Please enter your **Tracking Number** provided at the time of repair to see the latest status.
         </p>
         
         <form method="POST">
             <div class="search-flex">
-                <input type="text" name="tracking_number" placeholder="NBJ-XXXXXX" value="{{ request.form.get('tracking_number','') }}" required>
+                <input type="text" name="tracking_number" placeholder="NBJ-XXXXXX" value="{{ tracking_number or '' }}" required autocomplete="off">
                 <button type="submit" class="btn-track">Track</button>
             </div>
         </form>
@@ -211,22 +79,23 @@
     {% endif %}
 
     {% if repair %}
-    <div class="card" style="border-color: rgba(255, 49, 49, 0.2);">
+    <div class="card" style="border-color: rgba(255, 49, 49, 0.2); animation: fadeIn 0.5s ease-out;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <div>
-                <div class="label" style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">Tracking ID</div>
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-red);">
+                <div style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px;">Tracking ID</div>
+                <div style="font-family: monospace; font-size: 1.4rem; font-weight: 800; color: var(--accent-red);">
                     {{ repair['tracking_number'] }}
                 </div>
             </div>
             {% set s = repair['status'] %}
-            <span class="badge badge-{{ s.lower().replace(' ','') }}" style="padding: 8px 16px; font-size: 0.75rem;">
+            <span class="badge badge-{{ s.lower().replace(' ','') }}" style="padding: 8px 16px;">
                 {{ s }}
             </span>
         </div>
 
         {% set statuses = ['Received','Diagnosing','Repairing','Waiting for Parts','Completed','Released'] %}
         {% set current_idx = statuses.index(repair['status']) if repair['status'] in statuses else 0 %}
+        
         <div class="progress-container">
             <div class="progress-track">
                 {% for st in statuses %}
@@ -241,36 +110,43 @@
 
         <div class="result-grid">
             <div class="data-point">
-                <div class="label">Customer</div>
+                <div class="label">Customer Name</div>
                 <div class="value">{{ repair['customer_name'] }}</div>
             </div>
             <div class="data-point">
-                <div class="label">Equipment</div>
+                <div class="label">Device Info</div>
                 <div class="value">{{ repair['item_name'] }} {% if repair['item_brand'] %}<span style="color: var(--text-dim);">({{ repair['item_brand'] }})</span>{% endif %}</div>
             </div>
             <div class="data-point">
-                <div class="label">Received On</div>
+                <div class="label">Date Logged</div>
                 <div class="value">{{ repair['date_received'] }}</div>
             </div>
             <div class="data-point">
-                <div class="label">Target Completion</div>
-                <div class="value" style="color: {% if repair['estimated_completion'] %}#ffae00{% else %}var(--text-dim){% endif %}">
-                    {{ repair['estimated_completion'] or 'Pending Assessment' }}
+                <div class="label">Est. Completion</div>
+                <div class="value" style="color: {% if repair['estimated_completion'] %}#f4d03f{% else %}var(--text-dim){% endif %}">
+                    {{ repair['estimated_completion'] or 'Awaiting diagnosis' }}
                 </div>
             </div>
         </div>
 
         {% if repair['technician_notes'] %}
         <div class="notes-box">
-            <div class="label" style="font-size: 0.55rem; color: var(--accent-red); margin-bottom: 5px;">Latest Technician Update</div>
+            <div style="font-size: 0.6rem; text-transform: uppercase; font-weight: 800; color: var(--accent-red); margin-bottom: 8px; letter-spacing: 1px;">Service Progress Notes</div>
             {{ repair['technician_notes'] }}
         </div>
         {% endif %}
     </div>
 
-    <div style="text-align: center; color: #444; font-size: 0.7rem; padding: 20px; letter-spacing: 0.5px;">
-        Questions about your repair? Contact support at <strong>0916-553-9782</strong>
+    <div style="text-align: center; color: #444; font-size: 0.75rem; padding: 20px; letter-spacing: 0.5px;">
+        Need immediate help? Call us at **0916-553-9782**
     </div>
     {% endif %}
 </div>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 {% endblock %}
