@@ -1,0 +1,244 @@
+
+    <span style="font-weight: 300; color: #666;">Overview /</span> 
+    <span style="font-weight: 600; margin-left: 5px; color: #fff;">Dashboard</span>
+
+
+<style>
+    /* Absolute Black Theme */
+    :root {
+        --bg-black: #000000;
+        --card-bg: #0a0a0a; /* Deep charcoal for slight definition */
+        --accent-red: #ff3131;
+        --accent-gradient: linear-gradient(145deg, #ff3131, #8b0000);
+        --text-bright: #ffffff;
+        --text-dim: #777777;
+        --border-thin: rgba(255, 255, 255, 0.05);
+        --border-red-glow: rgba(255, 49, 49, 0.2);
+    }
+
+    /* Apply background to the whole body area */
+    body, .main-container {
+        background-color: var(--bg-black) !important;
+    }
+
+    /* Elegant Stats Containers */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-thin);
+        border-radius: 12px;
+        padding: 24px;
+        transition: all 0.4s ease;
+    }
+
+    .stat-card:hover {
+        border-color: var(--border-red-glow);
+        box-shadow: 0 0 20px rgba(255, 49, 49, 0.05);
+        transform: scale(1.02);
+    }
+
+    .stat-icon {
+        font-size: 1.4rem;
+        color: var(--accent-red);
+        margin-bottom: 12px;
+        display: block;
+    }
+
+    .stat-value {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--text-bright);
+        letter-spacing: -1.5px;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-dim);
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    /* Dashboard Table Card */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-thin);
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    .card-header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-bright);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Minimalist Table */
+    .table-wrap { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+        padding: 15px;
+        color: var(--text-dim);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        border-bottom: 2px solid var(--border-thin);
+        text-align: left;
+    }
+
+    td {
+        padding: 18px 15px;
+        border-bottom: 1px solid var(--border-thin);
+        color: #d1d1d1;
+        font-size: 0.9rem;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { color: var(--text-bright); background: rgba(255,255,255,0.01); }
+
+    /* Highlights */
+    .tracking-num {
+        color: var(--accent-red);
+        font-weight: 700;
+        font-family: 'Monaco', monospace;
+    }
+
+    .badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        background: #151515;
+    }
+
+    .badge-ongoing { color: #ffae00; box-shadow: inset 0 0 5px rgba(255,174,0,0.1); }
+    .badge-completed { color: #00ffcc; box-shadow: inset 0 0 5px rgba(0,255,204,0.1); }
+
+    /* Buttons */
+    .btn-action {
+        background: var(--accent-gradient);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        box-shadow: 0 4px 15px rgba(255, 49, 49, 0.2);
+        transition: 0.3s;
+    }
+
+    .btn-action:hover {
+        box-shadow: 0 6px 20px rgba(255, 49, 49, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .btn-outline {
+        border: 1px solid var(--border-thin);
+        color: var(--text-dim);
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        transition: 0.3s;
+    }
+
+    .btn-outline:hover {
+        border-color: #444;
+        color: #fff;
+    }
+</style>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <i class="fas fa-microchip stat-icon"></i>
+        <div class="stat-value">{{ ongoing }}</div>
+        <div class="stat-label">In Progress</div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-check-circle stat-icon"></i>
+        <div class="stat-value">{{ completed }}</div>
+        <div class="stat-label">Ready</div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-hand-holding-heart stat-icon"></i>
+        <div class="stat-value">{{ released }}</div>
+        <div class="stat-label">Released</div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-layer-group stat-icon" style="color: #444;"></i>
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Total Volume</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header-flex">
+        <div class="card-title">Active Repair Queue</div>
+        <a href="{{ url_for('add_repair') }}" class="btn-action"><i class="fas fa-plus"></i> Add Job</a>
+    </div>
+
+    
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Customer</th>
+                    <th>Equipment</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+          
+            <tr>
+                <td><span class="tracking-num"></span></td>
+                <td style="font-weight: 600;"></td>
+                <td><span style="color: #444; margin-left: 5px;"></span></td>
+                <td>
+                    <span class="badge badge-{{ r['status'].lower().replace(' ','') }}">
+                      
+                    </span>
+                </td>
+                <td style="text-align: right;">
+                    <a href="{{ url_for('repair_detail', repair_id=r['id']) }}" class="btn-outline">Details</a>
+                </td>
+            </tr>
+         
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align: center; padding: 40px; color: var(--text-dim);">
+        <p>Queue is currently empty.</p>
+    </div>
+    
+</div>
+
+<div style="padding: 20px; border-top: 1px solid var(--border-thin); display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <p style="color: var(--text-bright); font-weight: 600; margin: 0;">NBJ Electronics Repair Center</p>
+        <p style="color: var(--text-dim); font-size: 0.75rem; margin: 0;">Dasmariñas, Cavite • 0916-553-9782</p>
+    </div>
+    <a href="{{ url_for('repair_history') }}" style="color: var(--accent-red); font-size: 0.8rem; font-weight: 700; text-decoration: none;">VIEW ALL RECORDS →</a>
+</div>

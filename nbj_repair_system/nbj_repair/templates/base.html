@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}NBJ Electronics Repair Center{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --red:#c0392b;--red-dark:#96281b;--red-light:#e74c3c;
+  --grey:#1a1a1a;--grey-mid:#222;--grey-card:#242424;--grey-light:#3a3a3a;
+  --grey-border:#3d3d3d;--grey-border2:#444;
+  --white:#fff;--white-dim:rgba(255,255,255,0.88);--white-muted:rgba(255,255,255,0.5);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--grey);color:var(--white);min-height:100vh;display:flex;}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:255px;background:var(--grey-mid);border-right:1px solid var(--grey-border);display:flex;flex-direction:column;z-index:100;}
+.sidebar-brand{padding:26px 22px;border-bottom:1px solid var(--grey-border);}
+.sidebar-brand .name{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--red-light);line-height:1.25;}
+.sidebar-brand .sub{font-size:0.65rem;color:var(--white-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1.2px;}
+.sidebar-nav{flex:1;padding:16px 0;overflow-y:auto;}
+.nav-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--white-muted);padding:14px 22px 5px;}
+.nav-link{display:flex;align-items:center;gap:11px;padding:10px 22px;color:var(--white-muted);text-decoration:none;font-size:0.86rem;font-weight:400;transition:all 0.18s;border-left:3px solid transparent;}
+.nav-link i{width:16px;text-align:center;font-size:0.85rem;}
+.nav-link:hover,.nav-link.active{background:rgba(192,57,43,0.1);border-left-color:var(--red-light);color:var(--white);}
+.sidebar-footer{padding:18px 22px;border-top:1px solid var(--grey-border);}
+.user-name{font-size:0.88rem;font-weight:500;color:var(--white-dim);margin-bottom:3px;}
+.role-pill{display:inline-block;background:var(--red);color:#fff;font-size:0.6rem;padding:2px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.logout-link{display:flex;align-items:center;gap:7px;color:var(--white-muted);text-decoration:none;font-size:0.8rem;transition:color 0.18s;}
+.logout-link:hover{color:var(--red-light);}
+
+/* MAIN */
+.main{margin-left:255px;min-height:100vh;display:flex;flex-direction:column;flex:1;}
+.topbar{background:var(--grey-mid);border-bottom:1px solid var(--grey-border);padding:15px 30px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.topbar-title{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:600;display:flex;align-items:center;gap:10px;}
+.topbar-title i{color:var(--red-light);font-size:1rem;}
+.topbar-info{font-size:0.76rem;color:var(--white-muted);text-align:right;line-height:1.6;}
+.topbar-info i{color:var(--red-light);}
+.content{padding:28px 30px;flex:1;}
+
+/* CARDS */
+.card{background:var(--grey-card);border:1px solid var(--grey-border);border-radius:10px;padding:22px;margin-bottom:22px;}
+.card-title{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:16px;display:flex;align-items:center;gap:9px;}
+.card-title i{color:var(--red-light);}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px;}
+.stat-card{background:var(--grey-card);border:1px solid var(--grey-border);border-radius:10px;padding:20px;display:flex;align-items:center;gap:15px;transition:border-color 0.2s;}
+.stat-card:hover{border-color:var(--red);}
+.stat-icon{width:46px;height:46px;background:rgba(192,57,43,0.14);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--red-light);flex-shrink:0;}
+.stat-value{font-size:1.75rem;font-weight:700;line-height:1;}
+.stat-label{font-size:0.72rem;color:var(--white-muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:0.84rem;}
+th{text-align:left;padding:10px 13px;font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--white-muted);border-bottom:1px solid var(--grey-border);font-weight:500;}
+td{padding:12px 13px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+tr:hover td{background:rgba(255,255,255,0.025);}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+.badge-received{background:rgba(52,152,219,0.18);color:#5dade2;}
+.badge-diagnosing{background:rgba(241,196,15,0.18);color:#f4d03f;}
+.badge-repairing{background:rgba(230,126,34,0.18);color:#eb984e;}
+.badge-waitingforparts{background:rgba(155,89,182,0.18);color:#bb8fce;}
+.badge-completed{background:rgba(39,174,96,0.18);color:#58d68d;}
+.badge-released{background:rgba(192,57,43,0.18);color:#ec7063;}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:0.72rem;color:var(--white-muted);text-transform:uppercase;letter-spacing:0.8px;}
+input,select,textarea{background:rgba(255,255,255,0.05);border:1px solid var(--grey-border2);border-radius:7px;color:var(--white);padding:10px 13px;font-size:0.87rem;font-family:'DM Sans',sans-serif;transition:border-color 0.2s;width:100%;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red-light);background:rgba(255,255,255,0.07);}
+select option{background:var(--grey-light);}
+textarea{resize:vertical;min-height:80px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:7px;border:none;font-size:0.84rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;transition:all 0.18s;}
+.btn-primary{background:var(--red);color:#fff;}
+.btn-primary:hover{background:var(--red-dark);}
+.btn-outline{background:transparent;color:var(--white-dim);border:1px solid var(--grey-border2);}
+.btn-outline:hover{background:rgba(255,255,255,0.06);border-color:#666;}
+.btn-sm{padding:6px 12px;font-size:0.77rem;}
+.btn-danger{background:rgba(192,57,43,0.15);color:#ec7063;border:1px solid rgba(192,57,43,0.25);}
+.btn-danger:hover{background:rgba(192,57,43,0.28);}
+
+/* ALERT BOXES */
+.msg-success{padding:11px 15px;border-radius:8px;margin-bottom:18px;font-size:0.84rem;display:flex;align-items:center;gap:9px;background:rgba(39,174,96,0.12);border:1px solid rgba(39,174,96,0.28);color:#58d68d;}
+.msg-error{padding:11px 15px;border-radius:8px;margin-bottom:18px;font-size:0.84rem;display:flex;align-items:center;gap:9px;background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.28);color:#ec7063;}
+.msg-info{padding:11px 15px;border-radius:8px;margin-bottom:18px;font-size:0.84rem;display:flex;align-items:center;gap:9px;background:rgba(52,152,219,0.1);border:1px solid rgba(52,152,219,0.25);color:#5dade2;}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;}
+.filter-tab{padding:6px 13px;border-radius:20px;font-size:0.78rem;border:1px solid var(--grey-border2);color:var(--white-muted);text-decoration:none;transition:all 0.18s;}
+.filter-tab:hover,.filter-tab.active{background:var(--red);border-color:var(--red);color:#fff;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--grey-card);border:1px solid var(--grey-border2);border-radius:12px;padding:26px;width:460px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.05rem;margin-bottom:18px;color:var(--red-light);}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:48px 20px;color:var(--white-muted);}
+.empty-state i{font-size:2.2rem;margin-bottom:12px;display:block;color:var(--grey-border2);}
+.empty-state p{font-size:0.88rem;}
+
+/* TRACKING */
+.tracking-num{font-family:monospace;font-size:0.9rem;color:var(--red-light);font-weight:700;letter-spacing:1px;}
+
+/* DIVIDER */
+hr{border:none;border-top:1px solid var(--grey-border);margin:18px 0;}
+
+/* COMPANY FOOTER BAR */
+.company-bar{background:linear-gradient(135deg,rgba(192,57,43,0.09),transparent);border:1px solid rgba(192,57,43,0.22);border-radius:10px;padding:18px 22px;margin-bottom:22px;}
+.company-bar-name{font-family:'Playfair Display',serif;font-size:1.05rem;margin-bottom:5px;}
+.company-bar-desc{font-size:0.8rem;color:var(--white-muted);line-height:1.6;}
+.company-bar-contacts{margin-top:10px;display:flex;flex-wrap:wrap;gap:16px;font-size:0.78rem;color:var(--white-muted);}
+.company-bar-contacts i{color:var(--red-light);width:14px;}
+</style>
+
+</head>
+<body>
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="name">NBJ Electronics<br>Repair Center</div>
+    <div class="sub">Monitoring System</div>
+  </div>
+  <nav class="sidebar-nav">
+
+    <div class="nav-label">Management</div>
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <i class="fas fa-tachometer-alt"></i> Dashboard
+    </a>
+    <a href="{{ url_for('add_repair') }}" class="nav-link {% if request.endpoint == 'add_repair' %}active{% endif %}">
+      <i class="fas fa-plus-circle"></i> Add Repair Job
+    </a>
+    <a href="{{ url_for('repair_history') }}" class="nav-link {% if request.endpoint == 'repair_history' %}active{% endif %}">
+      <i class="fas fa-history"></i> Repair History
+    </a>
+    <div class="nav-label">Accounts</div>
+    <a href="{{ url_for('manage_accounts') }}" class="nav-link {% if request.endpoint == 'manage_accounts' %}active{% endif %}">
+      <i class="fas fa-users"></i> Customer Accounts
+    </a>
+   
+    <div class="nav-label">My Items</div>
+    <a href="{{ url_for('customer_dashboard') }}" class="nav-link {% if request.endpoint == 'customer_dashboard' %}active{% endif %}">
+      <i class="fas fa-tools"></i> My Repair Status
+    </a>
+  
+    <div class="nav-label">Tools</div>
+    <a href="{{ url_for('track') }}" class="nav-link {% if request.endpoint == 'track' %}active{% endif %}">
+      <i class="fas fa-search"></i> Track by Number
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-name"></div>
+    <div class="role-pill"></div><br>
+    <a href="{{ url_for('logout') }}" class="logout-link"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+  </div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title"></div>
+    <div class="topbar-info">
+      <i class="fas fa-map-marker-alt"></i> Sta. Clara Congressional Rd, Brgy. H2, Dasmariñas, Cavite<br>
+      <i class="fas fa-phone"></i> 0916-553-9782 &nbsp;|&nbsp; <i class="fas fa-envelope"></i> nbj.dasmacavite2@gmail.com
+    </div>
+  </div>
+  <div class="content">
+  
+  </div>
+</div>
+</body>
+</html>

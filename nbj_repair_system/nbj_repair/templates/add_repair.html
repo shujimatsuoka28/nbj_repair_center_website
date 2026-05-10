@@ -1,0 +1,219 @@
+
+<style>
+    /* Super Dark Grey / OLED Theme Foundations */
+    :root {
+        --bg-super-dark: #050505; /* Super Dark Grey */
+        --card-bg: #0a0a0a;       /* Slightly lighter for definition */
+        --accent-red: #ff3131;
+        --accent-gradient: linear-gradient(145deg, #ff3131, #8b0000);
+        --text-bright: #ffffff;
+        --text-dim: #777777;
+        --border-thin: rgba(255, 255, 255, 0.05);
+        --input-bg: #0d0d0d;
+    }
+
+    /* Force the background for the entire content area */
+    body {
+        background-color: var(--bg-super-dark) !important;
+    }
+
+    .form-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px 0;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-thin);
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    .form-section-header {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-red);
+        font-weight: 800;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    hr {
+        border: 0;
+        border-top: 1px solid var(--border-thin);
+        margin: 35px 0;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group.full {
+        grid-column: span 2;
+    }
+
+    label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    input, select, textarea {
+        background: var(--input-bg);
+        border: 1px solid var(--border-thin);
+        border-radius: 8px;
+        padding: 14px 16px;
+        color: var(--text-bright);
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--accent-red);
+        background: #121212;
+        box-shadow: 0 0 15px rgba(255, 49, 49, 0.1);
+    }
+
+    /* Modern scrollbar for textareas */
+    textarea {
+        min-height: 120px;
+        resize: none;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 40px;
+    }
+
+    .btn-save {
+        background: var(--accent-gradient);
+        color: #fff;
+        padding: 14px 28px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 800;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 49, 49, 0.4);
+    }
+
+    .btn-cancel {
+        background: transparent;
+        border: 1px solid var(--border-thin);
+        color: var(--text-dim);
+        padding: 14px 28px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        transition: 0.3s;
+        text-align: center;
+    }
+
+    .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border-color: #444;
+    }
+</style>
+
+<div class="form-container">
+    <div class="card">
+        <form method="POST">
+            <div class="form-section-header">
+                <i class="fas fa-user-shield"></i> Client Identity
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Associate with Account</label>
+                    <select name="customer_id">
+                        <option value="">— Walk-in / Unregistered —</option>
+                        
+                        <option value="{{ c['id'] }}">  c('full_name')   c('username') </option>
+                        
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Customer Name *</label>
+                    <input type="text" name="customer_name" placeholder="Full legal name" required>
+                </div>
+                <div class="form-group">
+                    <label>Contact Number</label>
+                    <input type="text" name="contact_number" placeholder="09XX-XXX-XXXX">
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="form-section-header">
+                <i class="fas fa-cog"></i> Technical Specifications
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Appliance / Unit *</label>
+                    <input type="text" name="item_name" placeholder="e.g. Inverter Aircon" required>
+                </div>
+                <div class="form-group">
+                    <label>Brand</label>
+                    <input type="text" name="item_brand" placeholder="e.g. LG, Samsung">
+                </div>
+                <div class="form-group full">
+                    <label>Problem Description</label>
+                    <textarea name="issue_description" placeholder="Provide detailed fault symptoms..."></textarea>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="form-section-header">
+                <i class="fas fa-money-bill-wave"></i> Logistics & Quotes
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Date Received *</label>
+                    <input type="date" name="date_received" value="{{ today }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Est. Delivery</label>
+                    <input type="date" name="estimated_completion">
+                </div>
+                <div class="form-group full">
+                    <label>Service Fee Estimate (₱)</label>
+                    <input type="number" name="repair_cost" placeholder="0.00" min="0" step="0.01">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn-save">Finalize Entry</button>
+                <a href="{{ url_for('dashboard') }}" class="btn-cancel">Discard Changes</a>
+            </div>
+        </form>
+    </div>
+</div>
