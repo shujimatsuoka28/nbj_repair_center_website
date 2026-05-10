@@ -15,142 +15,36 @@
         --glass-bg: rgba(255, 255, 255, 0.02);
     }
 
-    body {
-        background-color: var(--bg-super-dark) !important;
-    }
+    body, .main { background-color: var(--bg-super-dark) !important; }
 
-    .detail-container {
-        max-width: 850px;
-        margin: 0 auto;
-        padding-bottom: 40px;
-    }
+    .detail-container { max-width: 850px; margin: 0 auto; padding-bottom: 40px; }
 
-    /* Header Navigation */
-    .header-nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-    }
+    .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .tracking-badge-large { font-family: monospace; font-size: 1.4rem; font-weight: 800; color: var(--accent-red); letter-spacing: -1px; }
 
-    .tracking-badge-large {
-        font-family: 'JetBrains Mono', 'Monaco', monospace;
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: var(--accent-red);
-        letter-spacing: -1px;
-    }
+    .card { background: var(--card-bg); border: 1px solid var(--border-thin); border-radius: 16px; padding: 30px; margin-bottom: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .card-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+    .card-title i { color: var(--accent-red); font-size: 0.9rem; }
 
-    /* Card Styling */
-    .card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 16px;
-        padding: 30px;
-        margin-bottom: 24px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 25px; }
+    .data-item .label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 6px; }
+    .data-item .value { font-size: 1.05rem; font-weight: 500; color: var(--text-bright); }
 
-    .card-title {
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: var(--text-dim);
-        margin-bottom: 25px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+    .notes-box { margin-top: 20px; padding: 18px; background: var(--glass-bg); border: 1px solid var(--border-thin); border-radius: 12px; font-size: 0.92rem; line-height: 1.6; color: #d1d1d1; }
 
-    .card-title i {
-        color: var(--accent-red);
-        font-size: 0.9rem;
-    }
+    .summary-card { background: linear-gradient(145deg, #0d0d0d, #050505); border: 1px solid rgba(255, 49, 49, 0.15); display: flex; justify-content: space-between; align-items: center; padding: 35px; }
+    .cost-display .amount { font-size: 2rem; font-weight: 800; color: var(--text-bright); letter-spacing: -1px; }
 
-    /* Data Display Grid */
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 25px;
-    }
+    /* RE-SYNCED with base.html */
+    .status-pill { padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .badge-received { background: rgba(52,152,219,0.1); color:#5dade2; border: 1px solid rgba(52,152,219,0.2); }
+    .badge-diagnosing { background: rgba(241,196,15,0.1); color:#f4d03f; border: 1px solid rgba(241,196,15,0.2); }
+    .badge-repairing { background: rgba(230,126,34,0.1); color:#eb984e; border: 1px solid rgba(230,126,34,0.2); }
+    .badge-completed { background: rgba(39,174,96,0.1); color:#58d68d; border: 1px solid rgba(39,174,96,0.2); }
+    .badge-released { background: rgba(192,57,43,0.1); color:#ec7063; border: 1px solid rgba(192,57,43,0.2); }
 
-    .data-item .label {
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--text-dim);
-        margin-bottom: 6px;
-    }
-
-    .data-item .value {
-        font-size: 1.05rem;
-        font-weight: 500;
-        color: var(--text-bright);
-    }
-
-    /* Technical Notes Area */
-    .notes-box {
-        margin-top: 20px;
-        padding: 18px;
-        background: var(--glass-bg);
-        border: 1px solid var(--border-thin);
-        border-radius: 12px;
-        font-size: 0.92rem;
-        line-height: 1.6;
-        color: #d1d1d1;
-    }
-
-    /* Financial & Status Footer Card */
-    .summary-card {
-        background: linear-gradient(145deg, #0d0d0d, #050505);
-        border: 1px solid rgba(255, 49, 49, 0.15);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 35px;
-    }
-
-    .cost-display .amount {
-        font-size: 2rem;
-        font-weight: 800;
-        color: var(--text-bright);
-        letter-spacing: -1px;
-    }
-
-    /* Status Badges */
-    .status-pill {
-        padding: 8px 20px;
-        border-radius: 10px;
-        font-size: 0.8rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .badge-ongoing { background: rgba(255, 174, 0, 0.1); color: #ffae00; border: 1px solid rgba(255, 174, 0, 0.2); }
-    .badge-completed { background: rgba(0, 255, 204, 0.1); color: #00ffcc; border: 1px solid rgba(0, 255, 204, 0.2); }
-
-    /* Buttons */
-    .btn-back {
-        background: transparent;
-        border: 1px solid var(--border-thin);
-        color: var(--text-dim);
-        padding: 10px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        transition: 0.3s;
-    }
-
-    .btn-back:hover {
-        border-color: #444;
-        color: #fff;
-        background: rgba(255,255,255,0.05);
-    }
+    .btn-back { background: transparent; border: 1px solid var(--border-thin); color: var(--text-dim); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; transition: 0.3s; }
+    .btn-back:hover { border-color: var(--accent-red); color: #fff; background: rgba(255,255,255,0.05); }
 </style>
 
 <div class="detail-container">
@@ -159,9 +53,9 @@
             <div class="tracking-badge-large">#{{ repair['tracking_number'] }}</div>
         </div>
         {% if session.get('role') == 'admin' %}
-        <a href="{{ url_for('repair_history') }}" class="btn-back"><i class="fas fa-arrow-left"></i> History</a>
+        <a href="{{ url_for('repair_history') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Back to History</a>
         {% else %}
-        <a href="{{ url_for('customer_dashboard') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <a href="{{ url_for('customer_dashboard') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
         {% endif %}
     </div>
 
@@ -192,12 +86,12 @@
             </div>
             <div class="data-item">
                 <div class="label">Model Info</div>
-                <div class="value">{{ repair['item_model'] or '—' }}</div>
+                <div class="value">{{ repair['item_model'] or 'N/A' }}</div>
             </div>
         </div>
         {% if repair['issue_description'] %}
         <div class="notes-box" style="margin-top: 30px;">
-            <div class="label" style="font-size: 0.6rem; color: var(--accent-red); margin-bottom: 8px;">Diagnosed Problem</div>
+            <div class="label" style="font-size: 0.6rem; color: var(--accent-red); margin-bottom: 8px;">Reported Issue</div>
             {{ repair['issue_description'] }}
         </div>
         {% endif %}
@@ -207,7 +101,7 @@
         <div class="card-title"><i class="fas fa-calendar-check"></i> Timeline Overview</div>
         <div class="info-grid">
             <div class="data-item">
-                <div class="label">Received</div>
+                <div class="label">Date Received</div>
                 <div class="value">{{ repair['date_received'] }}</div>
             </div>
             <div class="data-item">
@@ -218,12 +112,12 @@
             </div>
             <div class="data-item">
                 <div class="label">Release Date</div>
-                <div class="value">{{ repair['date_completed'] or '—' }}</div>
+                <div class="value">{{ repair['date_completed'] or 'Pending' }}</div>
             </div>
         </div>
         {% if repair['technician_notes'] %}
         <div class="notes-box">
-            <div class="label" style="font-size: 0.6rem; color: var(--accent-red); margin-bottom: 8px;">Technician Updates</div>
+            <div class="label" style="font-size: 0.6rem; color: var(--accent-red); margin-bottom: 8px;">Technical Service Notes</div>
             {{ repair['technician_notes'] }}
         </div>
         {% endif %}
@@ -232,10 +126,10 @@
     <div class="card summary-card">
         <div class="cost-display">
             <div class="label" style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px;">Total Service Fee</div>
-            <div class="amount">₱{{ '%.2f'|format(repair['repair_cost']) }}</div>
+            <div class="amount">₱{{ '%.2f'|format(repair['repair_cost'] or 0) }}</div>
         </div>
         <div style="text-align: right;">
-            <div class="label" style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px;">Current Lifecycle</div>
+            <div class="label" style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px;">Current Status</div>
             {% set s = repair['status'] %}
             <span class="status-pill badge-{{ s.lower().replace(' ','') }}">{{ s }}</span>
         </div>
