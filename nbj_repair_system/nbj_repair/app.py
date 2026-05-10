@@ -15,14 +15,15 @@ def get_db_connection():
         port=15200,
         user="avnadmin",
         password="AVNS_MqFJx335YPQw4FubVkz",
-        database="defaultdb"
+        database="defaultdb",
+        ssl_disabled=False # Critical for Aiven
     )
 
 # --- DATABASE SETUP ---
 def setup_database():
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -63,13 +64,10 @@ setup_database()
 
 @app.route('/force-admin')
 def force_admin():
-    """Use this route if you are locked out. Visit /force-admin in your browser."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Clean up existing admin to prevent duplicate errors
         cursor.execute("DELETE FROM users WHERE username = 'admin'")
-        # Re-insert the default admin
         cursor.execute("""
             INSERT INTO users (username, password, fullname, role) 
             VALUES (%s, %s, %s, %s)""", 
@@ -89,7 +87,6 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login():
-    # .strip() handles accidental spaces in the form
     username = request.form.get('username').strip()
     password = request.form.get('password').strip()
     
@@ -141,23 +138,36 @@ def add_repair():
     
     if request.method == 'POST':
         track_id = "NBJ-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        
-        # Ensure date_received isn't empty
         received_date = request.form.get('date_received') or date.today()
 
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # FIXED: Data tuple now matches the 13 columns in the INSERT query
         data = (
-            track_id, request.form.get('customer_name'), request.form.get('contact_number'),
-            request.form.get('item_name'), request.form.get('item_brand'),
-            request.form.get('issue_description'), received_date,
+            track_id, 
+            request.form.get('customer_name'), 
+            request.form.get('contact_number'),
+            request.form.get('item_name'), 
+            request.form.get('item_brand'),
+            request.form.get('item_model', ''), # Added placeholder for model
+            request.form.get('issue_description'),
+            "", # technician_notes (empty on start)
+            'Received', 
+            received_date,
             request.form.get('estimated_completion') or None,
-            request.form.get('repair_cost') or 0, request.form.get('customer_id') or None
+            request.form.get('repair_cost') or 0.0, 
+            request.form.get('customer_id') or None
         )
+        
+        # FIXED: Column list must match the values provided
         cursor.execute("""
-            INSERT INTO repairs (tracking_number, customer_name, contact_number, item_name, 
-            item_brand, issue_description, date_received, estimated_completion, repair_cost, user_id) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
+            INSERT INTO repairs (
+                tracking_number, customer_name, contact_number, item_name, 
+                item_brand, item_model, issue_description, technician_notes, 
+                status, date_received, estimated_completion, repair_cost, user_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", data)
+            
         conn.commit()
         cursor.close()
         conn.close()
@@ -213,8 +223,11 @@ def manage_accounts():
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
-            cursor.execute("INSERT INTO users (username, password, fullname, role) VALUES (%s, %s, %s, 'customer')", 
-                           (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
+            # FIXED: Column names must match the 'users' table structure
+            cursor.execute("""
+                INSERT INTO users (username, password, fullname, role) 
+                VALUES (%s, %s, %s, 'customer')""", 
+                (request.form.get('username'), request.form.get('password'), request.form.get('full_name')))
         elif action == 'delete':
             cursor.execute("DELETE FROM users WHERE id=%s", (request.form.get('user_id'),))
         conn.commit()
@@ -225,7 +238,7 @@ def manage_accounts():
     conn.close()
     return render_template('manage_accounts.html', customers=customers)
 
-# --- CUSTOMER & SHARED ROUTES ---
+# --- SHARED ---
 
 @app.route('/track', methods=['GET', 'POST'])
 def track():
