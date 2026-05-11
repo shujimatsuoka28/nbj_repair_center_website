@@ -16,8 +16,7 @@ def get_db_connection():
             port=15200,
             user="avnadmin",
             password="AVNS_MqFJx335YPQw4FubVkz",
-            database="defaultdb",
-            ssl_disabled=False 
+            database="defaultdb"
         )
     except Exception as e:
         print(f"Database Connection Failed: {e}")
@@ -28,26 +27,14 @@ def init_db():
     conn = get_db_connection()
     if conn:
         cursor = conn.cursor()
-        # Create Users Table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(50) UNIQUE,
-                password VARCHAR(50),
-                fullname VARCHAR(100),
-                role VARCHAR(20)
-            )
-        """)
-        # Create Repairs Table with all Tranche 3 Fields
+        cursor.execute("CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50) UNIQUE, password VARCHAR(50), fullname VARCHAR(100), role VARCHAR(20))")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS repairs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 tracking_number VARCHAR(50) UNIQUE,
                 customer_name VARCHAR(100),
-                contact_number VARCHAR(50),
                 item_name VARCHAR(100),
                 item_brand VARCHAR(100),
-                issue_description TEXT,
                 technician_notes TEXT,
                 status VARCHAR(50) DEFAULT 'Received',
                 date_received DATE,
@@ -56,13 +43,14 @@ def init_db():
                 user_id INT
             )
         """)
+        # Force column check to prevent 500 errors
+        try: cursor.execute("ALTER TABLE repairs ADD COLUMN technician_notes TEXT")
+        except: pass
         conn.commit()
         cursor.close()
         conn.close()
 
 init_db()
-
-# --- ROUTES ---
 
 @app.route('/')
 def index():
@@ -70,44 +58,33 @@ def index():
 
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.form.get('username').strip()
-    password = request.form.get('password').strip()
+    u, p = request.form.get('username', '').strip(), request.form.get('password', '').strip()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
+    cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (u, p))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
-    
     if user:
-        session['user_id'] = user['id']
-        session['role'] = user['role']
-        session['fullname'] = user['fullname']
+        session.update({'user_id': user['id'], 'role': user['role'], 'fullname': user['fullname']})
         return redirect(url_for('admin_dashboard' if user['role'] == 'admin' else 'customer_dashboard'))
     return redirect(url_for('index'))
 
-# --- PUBLIC TRACKING (CRITICAL FIX FOR METHOD NOT ALLOWED) ---
 @app.route('/track', methods=['GET', 'POST'])
 def track():
-    repair = None
-    tracking_number = None
-    error = None
-    
+    repair, tracking_number, error = None, None, None
     if request.method == 'POST':
         tracking_number = request.form.get('tracking_number', '').strip()
-        conn = get_db_connection()
-        if conn:
+        try:
+            conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM repairs WHERE tracking_number = %s", (tracking_number,))
             repair = cursor.fetchone()
             cursor.close()
             conn.close()
-            
-            if not repair:
-                error = f"Tracking number '{tracking_number}' not found."
-        else:
-            error = "Database connection issue. Please try again later."
-
+            if not repair: error = f"Ticket '{tracking_number}' not found."
+        except Exception as e:
+            error = f"Database Error: {str(e)}"
     return render_template('track.html', repair=repair, tracking_number=tracking_number, error=error)
 
 @app.route('/admin-dashboard')
@@ -116,26 +93,18 @@ def admin_dashboard():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
-    all_repairs = cursor.fetchall()
+    repairs = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('dashboard.html', repairs=all_repairs)
+    return render_template('dashboard.html', repairs=repairs)
 
 @app.route('/update-status/<int:repair_id>', methods=['POST'])
 def update_status(repair_id):
     if session.get('role') != 'admin': return redirect(url_for('index'))
-    status = request.form.get('status')
-    est = request.form.get('estimated_completion') or None
-    cost = request.form.get('repair_cost') or 0
-    notes = request.form.get('technician_notes')
-    
+    s, n = request.form.get('status'), request.form.get('technician_notes')
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE repairs 
-        SET status=%s, estimated_completion=%s, repair_cost=%s, technician_notes=%s 
-        WHERE id=%s
-    """, (status, est, cost, notes, repair_id))
+    cursor.execute("UPDATE repairs SET status=%s, technician_notes=%s WHERE id=%s", (s, n, repair_id))
     conn.commit()
     cursor.close()
     conn.close()
@@ -147,4 +116,4 @@ def logout():
     return redirect(url_for('index'))
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)), debug=True)
+    app.run(host='0.0.0.0', port=10000, debug=True)
