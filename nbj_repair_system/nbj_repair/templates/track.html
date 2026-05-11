@@ -60,11 +60,9 @@
 <div class="track-container">
     <div class="card">
         <div class="card-title"><i class="fas fa-search"></i> Tracking Portal</div>
-        <p class="card-subtitle">
-            Please enter your **Tracking Number** provided at the time of repair to see the latest status.
-        </p>
+        <p class="card-subtitle">Enter your tracking number to check the live status of your repair.</p>
         
-        <form method="POST">
+        <form method="POST" action="{{ url_for('track') }}">
             <div class="search-flex">
                 <input type="text" name="tracking_number" placeholder="NBJ-XXXXXX" value="{{ tracking_number or '' }}" required autocomplete="off">
                 <button type="submit" class="btn-track">Track</button>
@@ -87,9 +85,8 @@
                     {{ repair['tracking_number'] }}
                 </div>
             </div>
-            {% set s = repair['status'] %}
-            <span class="badge badge-{{ s.lower().replace(' ','') }}" style="padding: 8px 16px;">
-                {{ s }}
+            <span class="badge" style="background: var(--accent-red); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
+                {{ repair['status'] }}
             </span>
         </div>
 
@@ -115,7 +112,7 @@
             </div>
             <div class="data-point">
                 <div class="label">Device Info</div>
-                <div class="value">{{ repair['item_name'] }} {% if repair['item_brand'] %}<span style="color: var(--text-dim);">({{ repair['item_brand'] }})</span>{% endif %}</div>
+                <div class="value">{{ repair['item_name'] }} <span style="color: var(--text-dim);">({{ repair['item_brand'] }})</span></div>
             </div>
             <div class="data-point">
                 <div class="label">Date Logged</div>
@@ -123,7 +120,7 @@
             </div>
             <div class="data-point">
                 <div class="label">Est. Completion</div>
-                <div class="value" style="color: {% if repair['estimated_completion'] %}#f4d03f{% else %}var(--text-dim){% endif %}">
+                <div class="value" style="color: #f4d03f;">
                     {{ repair['estimated_completion'] or 'Awaiting diagnosis' }}
                 </div>
             </div>
@@ -136,17 +133,6 @@
         </div>
         {% endif %}
     </div>
-
-    <div style="text-align: center; color: #444; font-size: 0.75rem; padding: 20px; letter-spacing: 0.5px;">
-        Need immediate help? Call us at **0916-553-9782**
-    </div>
     {% endif %}
 </div>
-
-<style>
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-</style>
 {% endblock %}
