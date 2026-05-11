@@ -32,17 +32,16 @@ def setup_database():
             cursor.execute("CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50) UNIQUE, password VARCHAR(50), fullname VARCHAR(100), role VARCHAR(20))")
             cursor.execute("CREATE TABLE IF NOT EXISTS repairs (id INT AUTO_INCREMENT PRIMARY KEY, tracking_number VARCHAR(50), customer_name VARCHAR(100), status VARCHAR(50) DEFAULT 'Received')")
             
-            # This ensures EVERY column your dashboard and track page needs exists
             cols = [
-                "ALTER TABLE repairs ADD COLUMN contact_number VARCHAR(50)",
-                "ALTER TABLE repairs ADD COLUMN item_name VARCHAR(100)",
-                "ALTER TABLE repairs ADD COLUMN item_brand VARCHAR(100)",
-                "ALTER TABLE repairs ADD COLUMN issue_description TEXT",
-                "ALTER TABLE repairs ADD COLUMN technician_notes TEXT",
-                "ALTER TABLE repairs ADD COLUMN date_received DATE",
-                "ALTER TABLE repairs ADD COLUMN estimated_completion DATE",
-                "ALTER TABLE repairs ADD COLUMN repair_cost DECIMAL(10,2) DEFAULT 0.0",
-                "ALTER TABLE repairs ADD COLUMN user_id INT"
+                "ALTER TABLE repairs ADD COLUMN contact_number VARCHAR(50) AFTER customer_name",
+                "ALTER TABLE repairs ADD COLUMN item_name VARCHAR(100) AFTER contact_number",
+                "ALTER TABLE repairs ADD COLUMN item_brand VARCHAR(100) AFTER item_name",
+                "ALTER TABLE repairs ADD COLUMN issue_description TEXT AFTER item_brand",
+                "ALTER TABLE repairs ADD COLUMN technician_notes TEXT AFTER issue_description", # Added for tracking display
+                "ALTER TABLE repairs ADD COLUMN date_received DATE AFTER technician_notes",
+                "ALTER TABLE repairs ADD COLUMN estimated_completion DATE AFTER date_received",
+                "ALTER TABLE repairs ADD COLUMN repair_cost DECIMAL(10,2) DEFAULT 0.0 AFTER estimated_completion",
+                "ALTER TABLE repairs ADD COLUMN user_id INT AFTER repair_cost"
             ]
             for col in cols:
                 try: cursor.execute(col)
@@ -66,7 +65,6 @@ def login():
     u = request.form.get('username', '').strip()
     p = request.form.get('password', '').strip()
     conn = get_db_connection()
-    if not conn: return "DB Connection Failed"
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (u, p))
     user = cursor.fetchone()
@@ -77,7 +75,12 @@ def login():
         return redirect(url_for('admin_dashboard') if user['role'] == 'admin' else url_for('customer_dashboard'))
     return redirect(url_for('login_page'))
 
-# --- ADMIN DASHBOARD (Likely where the 500 error was) ---
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login_page'))
+
+# --- DASHBOARDS ---
 @app.route('/admin-dashboard')
 def admin_dashboard():
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
@@ -88,21 +91,17 @@ def admin_dashboard():
         rows = cursor.fetchall() or []
         cursor.close()
         conn.close()
-        
-        # Using .get() prevents crashing if a status is missing
         stats = {
             'total': len(rows),
-            'ongoing': sum(1 for r in rows if str(r.get('status')) == 'Received'),
-            'waiting': sum(1 for r in rows if str(r.get('status')) == 'Awaiting Parts' or str(r.get('status')) == 'Waiting for Parts'),
-            'completed': sum(1 for r in rows if str(r.get('status')) == 'Completed'),
+            'ongoing': sum(1 for r in rows if r.get('status') == 'Received'),
+            'waiting': sum(1 for r in rows if r.get('status') == 'Awaiting Parts'),
+            'completed': sum(1 for r in rows if r.get('status') == 'Completed'),
             'recent': rows[:5],
-            'repairs': rows, # Crucial: Your HTML likely loops through 'repairs'
-            'admin_name': session.get('fullname', 'Administrator')
+            'admin_name': session.get('fullname', 'Administrator'),
+            'repairs': rows # Added to ensure dashboard lists work
         }
         return render_template('dashboard.html', **stats)
-    except Exception as e: 
-        print(f"Dashboard Error: {e}")
-        return f"Internal Dashboard Error: {e}"
+    except Exception as e: return f"Error: {e}"
 
 @app.route('/customer-dashboard')
 def customer_dashboard():
@@ -180,43 +179,103 @@ def add_repair():
     conn.close()
     return render_template('add_repair.html', customers=customers, today=date.today())
 
-# --- TRACK & UPDATES ---
-@app.route('/track', methods=['GET', 'POST'])
-def track():
-    repair, tracking_number, error = None, None, None
-    if request.method == 'POST':
-        tracking_number = request.form.get('tracking_number', '').strip()
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM repairs WHERE tracking_number = %s", (tracking_number,))
-            repair = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            if not repair: error = f"ID '{tracking_number}' not found."
-        except Exception as e: error = f"Error: {e}"
-    return render_template('track.html', repair=repair, tracking_number=tracking_number, error=error)
+# --- REPAIR HISTORY & UPDATES ---
+@app.route('/repair-history')
+def repair_history():
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    status_filter = request.args.get('status')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        if status_filter:
+            cursor.execute("SELECT * FROM repairs WHERE status = %s ORDER BY id DESC", (status_filter,))
+        else:
+            cursor.execute("SELECT * FROM repairs ORDER BY id DESC")
+        repairs = cursor.fetchall() or []
+        cursor.close()
+        conn.close()
+        return render_template('repair_history.html', repairs=repairs, status_filter=status_filter)
+    except Exception as e: return f"Error: {e}"
 
 @app.route('/update-status/<int:repair_id>', methods=['POST'])
 def update_status(repair_id):
     if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    status = request.form.get('status')
+    est = request.form.get('estimated_completion') or None
+    cost = request.form.get('repair_cost') or 0
+    notes = request.form.get('technician_notes')
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""UPDATE repairs SET status=%s, estimated_completion=%s, 
                           repair_cost=%s, technician_notes=%s WHERE id=%s""", 
-                       (request.form.get('status'), request.form.get('estimated_completion') or None, 
-                        request.form.get('repair_cost') or 0, request.form.get('technician_notes'), repair_id))
+                       (status, est, cost, notes, repair_id))
         conn.commit()
         cursor.close()
         conn.close()
     except Exception as e: print(f"Update Error: {e}")
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('repair_history'))
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login_page'))
+@app.route('/repair-detail/<int:repair_id>')
+def repair_detail(repair_id):
+    if session.get('role') != 'admin': return redirect(url_for('login_page'))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM repairs WHERE id = %s", (repair_id,))
+    repair = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return render_template('repair_detail.html', repair=repair)
+
+# --- PUBLIC TRACKING (FIXED PORTION) ---
+@app.route('/track', methods=['GET', 'POST'])
+def track():
+    repair = None
+    tracking_number = None
+    error = None
+    
+    if request.method == 'POST':
+        tracking_number = request.form.get('tracking_number', '').strip()
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            # Search for the exact tracking number
+            cursor.execute("SELECT * FROM repairs WHERE tracking_number = %s", (tracking_number,))
+            repair = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not repair:
+                error = f"No repair record found for ID: {tracking_number}"
+        except Exception as e:
+            error = f"Tracking Error: {e}"
+            
+    return render_template('track.html', repair=repair, tracking_number=tracking_number, error=error)
+
+# --- RECOVERY & SETUP ---
+@app.route('/reset-database')
+def reset_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+    cursor.execute("DROP TABLE IF EXISTS repairs")
+    cursor.execute("DROP TABLE IF EXISTS users")
+    cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+    conn.commit()
+    cursor.close()
+    conn.close()
+    setup_database()
+    return "Database Reset! <a href='/force-admin'>Force Admin</a>"
+
+@app.route('/force-admin')
+def force_admin():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("REPLACE INTO users (id, username, password, fullname, role) VALUES (1, 'admin', '1234', 'System Admin', 'admin')")
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return "Admin reset to admin/1234! <a href='/'>Login</a>"
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=10000, debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)), debug=True)
